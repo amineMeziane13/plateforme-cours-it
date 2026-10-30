@@ -1,0 +1,23 @@
+{
+  "name": "plateforme-cours-it",
+  "version": "1.0.0",
+  "description": "Plateforme dynamique pour déposer, modifier et supprimer des fichiers de cours IT sous rubriques",
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "postinstall": "npm --prefix backend install && npm --prefix frontend install",
+    "start": "node backend/server.js",
+    "dev:backend": "node backend/server.js",
+    "dev:frontend": "npm --prefix frontend run dev"
+  },
+  "keywords": [
+    "it",
+    "courses",
+    "education",
+    "files",
+    "upload",
+    "admin"
+  ],
+  "author": "IT Platform",
+  "license": "ISC"
+}

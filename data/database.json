@@ -1,0 +1,192 @@
+{
+  "rubriques": [
+    {
+      "id": "rub-securite",
+      "name": "Cybersécurité & Ethical Hacking",
+      "description": "Sécurité offensive/défensive, protocoles cryptographiques, pentesting et audits.",
+      "icon": "ShieldAlert",
+      "color": "red",
+      "badge": "Urgent & Critique",
+      "createdAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "rub-web",
+      "name": "Développement Web & Mobile",
+      "description": "Architecture frontend & backend, API REST, React, Node.js, TypeScript et mobile.",
+      "icon": "Code2",
+      "color": "blue",
+      "badge": "Fullstack",
+      "createdAt": "2026-09-02T08:00:00.000Z"
+    },
+    {
+      "id": "rub-reseaux",
+      "name": "Réseaux & Télécommunications",
+      "description": "Modèle OSI, protocoles TCP/IP, routage Cisco/Juniper, VLAN et sous-réseaux.",
+      "icon": "Network",
+      "color": "cyan",
+      "badge": "Infrastructure",
+      "createdAt": "2026-09-03T08:00:00.000Z"
+    },
+    {
+      "id": "rub-linux",
+      "name": "Systèmes d'Exploitation & Linux",
+      "description": "Administration système Linux/UNIX, Bash scripting, ordonnancement et kernel.",
+      "icon": "Terminal",
+      "color": "blue",
+      "badge": "SysAdmin",
+      "createdAt": "2026-09-04T08:00:00.000Z"
+    },
+    {
+      "id": "rub-cloud",
+      "name": "Cloud Computing & DevOps",
+      "description": "Docker, conteneurs, Kubernetes, CI/CD, Terraform et déploiement cloud AWS/GCP.",
+      "icon": "Cloud",
+      "color": "red",
+      "badge": "DevOps",
+      "createdAt": "2026-09-05T08:00:00.000Z"
+    },
+    {
+      "id": "rub-bdd",
+      "name": "Bases de Données & Big Data",
+      "description": "SQL relationnel avancé, NoSQL MongoDB/Redis, modélisation Merise et optimisation.",
+      "icon": "Database",
+      "color": "cyan",
+      "badge": "Données",
+      "createdAt": "2026-09-06T08:00:00.000Z"
+    },
+    {
+      "id": "rub-algo",
+      "name": "Algorithmique & Structures de Données",
+      "description": "Complexité algorithmique O(n), arbres, graphes, programmation dynamique Python/C++.",
+      "icon": "Cpu",
+      "color": "blue",
+      "badge": "Fondamentaux",
+      "createdAt": "2026-09-07T08:00:00.000Z"
+    },
+    {
+      "id": "rub-ia",
+      "name": "Intelligence Artificielle & Machine Learning",
+      "description": "Réseaux de neurones, LLM, apprentissage supervisé, PyTorch et vision par ordinateur.",
+      "icon": "Sparkles",
+      "color": "red",
+      "badge": "Innovation",
+      "createdAt": "2026-09-08T08:00:00.000Z"
+    }
+  ],
+  "files": [
+    {
+      "id": "file-1",
+      "filename": "cours-securite-reseaux-firewall.txt",
+      "originalName": "Cours_Securite_Reseaux_Firewalls_v2.pdf",
+      "title": "Architecture Pare-feu & Détection d'Intrusions (IDS/IPS)",
+      "rubriqueId": "rub-securite",
+      "description": "Guide complet sur la mise en place de zones DMZ, règles iptables, inspection avec Suricata et Snort.",
+      "level": "Master 1",
+      "professor": "Dr. Marc Valery (Cybersécurité)",
+      "tags": [
+        "Pare-feu",
+        "Suricata",
+        "iptables",
+        "DMZ",
+        "Sécurité"
+      ],
+      "mimeType": "application/pdf",
+      "downloads": 142,
+      "createdAt": "2026-10-15T10:30:00.000Z",
+      "sizeBytes": 811,
+      "path": "cours-securite-reseaux-firewall.txt"
+    },
+    {
+      "id": "file-2",
+      "filename": "tp-api-rest-nodejs.js",
+      "originalName": "TP_API_REST_Express_TypeScript.zip",
+      "title": "TP Pratique : API REST Sécurisée avec Express & JWT",
+      "rubriqueId": "rub-web",
+      "description": "Sujet et code source complet pour concevoir une API REST avec authentification token JWT et validation Zod.",
+      "level": "Licence 3",
+      "professor": "Prof. Sarah Benali",
+      "tags": [
+        "Node.js",
+        "Express",
+        "JWT",
+        "TypeScript",
+        "REST API"
+      ],
+      "mimeType": "application/zip",
+      "downloads": 289,
+      "createdAt": "2026-10-18T14:15:00.000Z",
+      "sizeBytes": 765,
+      "path": "tp-api-rest-nodejs.js"
+    },
+    {
+      "id": "file-3",
+      "filename": "cheatsheet-cisco-routage.txt",
+      "originalName": "Cheatsheet_Cisco_Routage_OSPF_BGP.pdf",
+      "title": "Aide-Mémoire Cisco IOS : Routage OSPF & VLANs",
+      "rubriqueId": "rub-reseaux",
+      "description": "Synthèse des commandes CLI Cisco Catalyst pour configurer le trunk 802.1Q, inter-vlan et OSPF multi-aires.",
+      "level": "Licence 2",
+      "professor": "Ing. Thomas Lefebvre",
+      "tags": [
+        "Cisco",
+        "OSPF",
+        "VLAN",
+        "Trunk",
+        "CLI"
+      ],
+      "mimeType": "application/pdf",
+      "downloads": 312,
+      "createdAt": "2026-10-20T09:00:00.000Z",
+      "sizeBytes": 593,
+      "path": "cheatsheet-cisco-routage.txt"
+    },
+    {
+      "id": "file-4",
+      "filename": "cours-docker-k8s.txt",
+      "originalName": "DevOps_Docker_Kubernetes_Architecture.pdf",
+      "title": "Conteneurisation Docker & Orchestration Kubernetes",
+      "rubriqueId": "rub-cloud",
+      "description": "Introduction aux Dockerfile multi-stage, Docker Compose, Pods, Deployments et Services Kubernetes.",
+      "level": "Master 2",
+      "professor": "Alexandre Roux (Cloud Architect)",
+      "tags": [
+        "Docker",
+        "Kubernetes",
+        "K8s",
+        "DevOps",
+        "Containers"
+      ],
+      "mimeType": "application/pdf",
+      "downloads": 195,
+      "createdAt": "2026-10-22T16:45:00.000Z",
+      "sizeBytes": 683,
+      "path": "cours-docker-k8s.txt"
+    },
+    {
+      "id": "file-5",
+      "filename": "cours-linux-bash-scripting.sh",
+      "originalName": "Support_Linux_Bash_Administration.sh",
+      "title": "Scripting Bash Avancé pour Administrateurs Systèmes",
+      "rubriqueId": "rub-linux",
+      "description": "Scripts de surveillance de charge, rotation automatique des journaux et audit de sécurité des comptes utilisateurs.",
+      "level": "Licence 2",
+      "professor": "Dr. Marc Valery",
+      "tags": [
+        "Linux",
+        "Bash",
+        "SysAdmin",
+        "Cron",
+        "Automatisation"
+      ],
+      "mimeType": "text/x-shellscript",
+      "downloads": 164,
+      "createdAt": "2026-10-25T11:20:00.000Z",
+      "sizeBytes": 386,
+      "path": "cours-linux-bash-scripting.sh"
+    }
+  ],
+  "adminConfig": {
+    "username": "admin",
+    "passwordHash": "admin123"
+  }
+}

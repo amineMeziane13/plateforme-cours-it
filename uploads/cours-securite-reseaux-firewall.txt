@@ -1,0 +1,23 @@
+# CYBERSÉCURITÉ : ARCHITECTURE PARE-FEU & IDS/IPS
+Module : Sécurité Réseaux Avancée
+Année Universitaire 2026-2027
+
+1. Introduction aux Zones Sécurisées
+- Définition d'une DMZ (Demilitarized Zone)
+- Séparation des flux WAN / LAN / DMZ
+
+2. Configuration des règles de filtrage (Netfilter / iptables)
+- Tables : filter, nat, mangle
+- Chaînes par défaut : INPUT, OUTPUT, FORWARD
+- Exemple de politique par défaut restrictive :
+    iptables -P INPUT DROP
+    iptables -P FORWARD DROP
+    iptables -P OUTPUT ACCEPT
+
+3. Systèmes de détection d'intrusions (IDS / IPS)
+- Snort vs Suricata : multi-threading et signatures
+- Détection d'anomalies comportementales vs basée sur les signatures
+
+4. Travaux Dirigés & Exercices
+- Analyse d'un dump PCAP avec Wireshark
+- Détection d'un scan Nmap SYN (-sS)

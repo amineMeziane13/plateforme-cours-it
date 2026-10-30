@@ -1,0 +1,28 @@
+# CONTENEURISATION & ORCHESTRATION MODERNE
+Architecture Microservices avec Docker et Kubernetes
+
+1. Bonnes pratiques Dockerfile :
+- Utiliser des images de base minimales (alpine ou distroless)
+- Multi-stage build pour séparer le compilateur du runtime de production
+- Exécuter sous un utilisateur non-root (USER 1001)
+
+2. Déploiement Kubernetes :
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: it-portal-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: it-portal-api
+  template:
+    metadata:
+      labels:
+        app: it-portal-api
+    spec:
+      containers:
+      - name: api
+        image: it-portal:latest
+        ports:
+        - containerPort: 5000
