@@ -6,6 +6,12 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './db.js';
+import { 
+  ADMIN_EMAIL, 
+  generateDynamicCredentials, 
+  verifyDynamicCredentials, 
+  sendDynamicCredentialsEmail 
+} from './emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,23 +73,71 @@ app.get('/api/stats', (req, res) => {
   }
 });
 
-// Admin Authentication
+// Request dynamic credentials sent to amine.blackline@gmail.com
+app.post('/api/auth/request-dynamic-login', async (req, res) => {
+  try {
+    const credentials = generateDynamicCredentials();
+    const emailResult = await sendDynamicCredentialsEmail(credentials);
+
+    res.json({
+      success: true,
+      recipient: ADMIN_EMAIL,
+      emailSent: emailResult.sent,
+      simulated: !!emailResult.simulated,
+      message: emailResult.sent 
+        ? `Identifiants dynamiques envoyés avec succès à ${ADMIN_EMAIL}.` 
+        : `Identifiants dynamiques générés pour ${ADMIN_EMAIL}.`,
+      // Provide credentials in payload if in dev/simulated mode so user is never locked out
+      tempCredentials: emailResult.sent ? null : {
+        username: credentials.username,
+        password: credentials.password
+      },
+      expiresInMinutes: 10
+    });
+  } catch (error) {
+    console.error('Erreur génération identifiants:', error);
+    res.status(500).json({ error: 'Erreur lors de la génération des accès sécurisés.' });
+  }
+});
+
+// Admin Authentication (Dynamic Credentials & Master Password)
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Identifiant et mot de passe requis.' });
   }
 
-  if (db.verifyAdmin(username, password)) {
-    // Return a session token simulation
+  // 1. First check dynamic temporary credentials sent to amine.blackline@gmail.com
+  const dynamicCheck = verifyDynamicCredentials(username, password);
+  if (dynamicCheck.valid) {
     return res.json({
       success: true,
-      token: 'admin-session-token-' + Date.now(),
-      user: { username: 'admin', role: 'ADMINISTRATEUR' }
+      token: 'admin-dynamic-token-' + Date.now(),
+      user: { 
+        username: username, 
+        role: 'ADMINISTRATEUR',
+        email: ADMIN_EMAIL,
+        authType: 'DYNAMIC_EMAIL_OTP'
+      }
     });
   }
 
-  return res.status(401).json({ error: 'Identifiants incorrects. Mot de passe par défaut : admin123' });
+  // 2. Fallback check for static master password (admin / admin123)
+  if (db.verifyAdmin(username, password)) {
+    return res.json({
+      success: true,
+      token: 'admin-master-token-' + Date.now(),
+      user: { 
+        username: 'admin', 
+        role: 'ADMINISTRATEUR',
+        authType: 'MASTER'
+      }
+    });
+  }
+
+  return res.status(401).json({ 
+    error: dynamicCheck.reason || 'Identifiants incorrects ou expirés. Cliquez sur "Envoyer mes accès" pour en générer de nouveaux.' 
+  });
 });
 
 // ==========================================

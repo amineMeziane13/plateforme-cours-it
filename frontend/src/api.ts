@@ -122,6 +122,16 @@ export const api = {
   },
 
   // Admin Auth
+  async requestDynamicCredentials() {
+    const res = await fetch(`${API_BASE}/auth/request-dynamic-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Erreur lors de la demande d\'identifiants.');
+    return result;
+  },
+
   async loginAdmin(username: string, password: string) {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
