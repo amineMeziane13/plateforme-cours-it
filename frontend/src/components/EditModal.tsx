@@ -104,27 +104,27 @@ export const EditModal: React.FC<EditModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-cyber-card border border-cyber-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-cyber-card border border-slate-200 dark:border-cyber-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col transition-colors">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-cyber-border bg-cyber-darker">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-cyber-border bg-slate-50 dark:bg-cyber-darker">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-cyber-blueLight shadow-glow-blue">
+            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-cyber-blueLight">
               <Edit3 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white font-mono">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white font-mono">
                 Modifier le support de cours
               </h3>
-              <p className="text-xs text-slate-400">
-                Fichier actuel : <span className="text-slate-300 font-mono">{file.originalName}</span>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Fichier actuel : <span className="text-slate-800 dark:text-slate-300 font-mono">{file.originalName}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -133,23 +133,23 @@ export const EditModal: React.FC<EditModalProps> = ({
         {/* Body Form */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1">
           
-          {/* Rubrique Selector (Allows moving file between rubriques) */}
+          {/* Rubrique Selector */}
           <div>
-            <label className="flex items-center justify-between text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+            <label className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
               <span className="flex items-center space-x-1.5">
-                <Layers className="w-3.5 h-3.5 text-cyber-cyan" />
+                <Layers className="w-3.5 h-3.5 text-cyan-600 dark:text-cyber-cyan" />
                 <span>Rubrique Associée *</span>
               </span>
-              <span className="text-[10px] text-cyan-400">Déplacer vers une autre rubrique</span>
+              <span className="text-[10px] text-cyan-600 dark:text-cyan-400">Déplacer vers une autre rubrique</span>
             </label>
             <select
               value={rubriqueId}
               onChange={(e) => setRubriqueId(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl bg-cyber-darker border border-cyber-border focus:border-cyan-400 text-white text-sm outline-none transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-cyan-500 text-slate-900 dark:text-white text-sm outline-none transition-all"
             >
               {rubriques.map((rub) => (
-                <option key={rub.id} value={rub.id} className="bg-cyber-darker text-white">
+                <option key={rub.id} value={rub.id} className="bg-white dark:bg-cyber-darker text-slate-900 dark:text-white">
                   {rub.name} ({rub.badge || 'Rubrique'})
                 </option>
               ))}
@@ -158,8 +158,8 @@ export const EditModal: React.FC<EditModalProps> = ({
 
           {/* Title */}
           <div>
-            <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-              <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+            <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+              <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>Titre du cours / document *</span>
             </label>
             <input
@@ -167,21 +167,21 @@ export const EditModal: React.FC<EditModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl bg-cyber-darker border border-cyber-border focus:border-blue-400 text-white text-sm outline-none transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-blue-500 text-slate-900 dark:text-white text-sm outline-none transition-all"
             />
           </div>
 
           {/* Level & Professor */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-                <GraduationCap className="w-3.5 h-3.5 text-blue-400" />
+              <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+                <GraduationCap className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Niveau / Promotion</span>
               </label>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-cyber-darker border border-cyber-border focus:border-blue-400 text-white text-sm outline-none transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-blue-500 text-slate-900 dark:text-white text-sm outline-none transition-all"
               >
                 <option value="Licence 1">Licence 1 (L1)</option>
                 <option value="Licence 2">Licence 2 (L2)</option>
@@ -194,8 +194,8 @@ export const EditModal: React.FC<EditModalProps> = ({
             </div>
 
             <div>
-              <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-                <User className="w-3.5 h-3.5 text-blue-400" />
+              <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+                <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Enseignant</span>
               </label>
               <input
@@ -203,47 +203,47 @@ export const EditModal: React.FC<EditModalProps> = ({
                 value={professor}
                 onChange={(e) => setProfessor(e.target.value)}
                 placeholder="Dr. Marc Valery"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-cyber-darker border border-cyber-border focus:border-blue-400 text-white text-sm outline-none transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-blue-500 text-slate-900 dark:text-white text-sm outline-none transition-all"
               />
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-              <AlignLeft className="w-3.5 h-3.5 text-slate-400" />
+            <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+              <AlignLeft className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <span>Description</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3.5 py-2 rounded-xl bg-cyber-darker border border-cyber-border focus:border-blue-400 text-white text-sm outline-none transition-all resize-none"
+              className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-blue-500 text-slate-900 dark:text-white text-sm outline-none transition-all resize-none"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
-              <Tag className="w-3.5 h-3.5 text-slate-400" />
+            <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+              <Tag className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <span>Mots-clés</span>
             </label>
             <input
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-cyber-darker border border-cyber-border focus:border-blue-400 text-white text-sm outline-none transition-all font-mono text-xs"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-blue-500 text-slate-900 dark:text-white text-sm outline-none transition-all font-mono text-xs"
             />
           </div>
 
           {/* Optional: Replace Attached File */}
           <div className="pt-2">
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
               Remplacer le document joint (optionnel)
             </label>
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="cursor-pointer border border-dashed border-cyber-border hover:border-blue-400/50 rounded-xl p-3 bg-cyber-darker text-center transition-all"
+              className="cursor-pointer border border-dashed border-slate-300 dark:border-cyber-border hover:border-blue-500 rounded-xl p-3 bg-slate-50 dark:bg-cyber-darker text-center transition-all"
             >
               <input
                 type="file"
@@ -252,13 +252,13 @@ export const EditModal: React.FC<EditModalProps> = ({
                 className="hidden"
               />
               {newFile ? (
-                <div className="flex items-center justify-center space-x-2 text-emerald-400 text-xs">
+                <div className="flex items-center justify-center space-x-2 text-emerald-600 dark:text-emerald-400 text-xs">
                   <FileCheck className="w-4 h-4" />
                   <span>Nouveau fichier sélectionné : {newFile.name}</span>
                 </div>
               ) : (
-                <div className="flex items-center justify-center space-x-2 text-slate-400 text-xs">
-                  <UploadCloud className="w-4 h-4 text-blue-400" />
+                <div className="flex items-center justify-center space-x-2 text-slate-500 dark:text-slate-400 text-xs">
+                  <UploadCloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   <span>Cliquez pour remplacer le fichier actuel par une nouvelle version</span>
                 </div>
               )}
@@ -266,19 +266,19 @@ export const EditModal: React.FC<EditModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-cyber-border">
+          <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200 dark:border-cyber-border">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-cyber-darker border border-cyber-border transition-all"
+              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-cyber-darker border border-slate-200 dark:border-cyber-border transition-all"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-glow-blue transition-all disabled:opacity-50"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50"
             >
               <Edit3 className="w-4 h-4" />
               <span>{isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}</span>

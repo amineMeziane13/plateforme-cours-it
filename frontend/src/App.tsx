@@ -29,6 +29,26 @@ export function App() {
     return !!localStorage.getItem('it_platform_admin_token');
   });
 
+  // Theme state: default to 'light' (white theme) as requested
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('it_theme');
+    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+  });
+
+  // Synchronize <html> root class and localStorage
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('it_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // Filters
   const [filters, setFilters] = useState<FilterState>({
     rubriqueId: 'all',
@@ -140,11 +160,13 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-cyber-black flex flex-col font-sans text-slate-100 bg-cyber-grid">
+    <div className="min-h-screen bg-slate-50 dark:bg-cyber-black flex flex-col font-sans text-slate-800 dark:text-slate-100 bg-cyber-grid transition-colors duration-200">
       
       {/* Navbar */}
       <Navbar
         isAdmin={isAdmin}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
         onLoginClick={() => setIsLoginOpen(true)}
@@ -187,21 +209,21 @@ export function App() {
 
       </main>
 
-      {/* Modern Cyber Footer */}
-      <footer className="border-t border-cyber-border/70 bg-cyber-darker/80 py-8 px-4 sm:px-6 lg:px-8 mt-16">
+      {/* Modern Clean / Cyber Footer */}
+      <footer className="border-t border-slate-200 dark:border-cyber-border/70 bg-white/80 dark:bg-cyber-darker/80 py-8 px-4 sm:px-6 lg:px-8 mt-16 text-slate-600 dark:text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
-            <Terminal className="w-4 h-4 text-cyber-blueLight" />
-            <span className="font-mono text-xs font-bold text-slate-300">
+            <Terminal className="w-4 h-4 text-blue-600 dark:text-cyber-blueLight" />
+            <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-300">
               Plateforme Pédagogique IT & Télécoms
             </span>
-            <span className="text-slate-600">•</span>
-            <span className="text-xs text-slate-400">
+            <span className="text-slate-300 dark:text-slate-600">•</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               Système de gestion de documents de cours
             </span>
           </div>
 
-          <div className="flex items-center space-x-4 text-xs text-slate-400">
+          <div className="flex items-center space-x-4 text-xs text-slate-500 dark:text-slate-400">
             <span>Réseaux</span>
             <span>•</span>
             <span>Cybersécurité</span>
@@ -211,11 +233,11 @@ export function App() {
             <span>Cloud & DevOps</span>
           </div>
 
-          <div className="text-xs text-slate-400 font-mono">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
             {isAdmin ? (
-              <span className="text-red-400">● Session Administrateur Active</span>
+              <span className="text-red-600 dark:text-red-400 font-medium">● Session Administrateur Active</span>
             ) : (
-              <span className="text-blue-400">● Mode Étudiant / Consultation</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium">● Mode Étudiant / Consultation</span>
             )}
           </div>
         </div>

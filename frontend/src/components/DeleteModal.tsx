@@ -3,7 +3,6 @@ import {
   X, 
   Trash2, 
   AlertTriangle, 
-  HardDrive,
   FileText
 } from 'lucide-react';
 import { CourseFile } from '../types';
@@ -49,25 +48,25 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md bg-cyber-card border border-red-500/40 rounded-2xl shadow-glow-red overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/85 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-md bg-white dark:bg-cyber-card border border-red-200 dark:border-red-500/40 rounded-2xl shadow-xl overflow-hidden flex flex-col transition-colors">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-red-500/30 bg-red-950/30">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-red-100 dark:border-red-500/30 bg-red-50 dark:bg-red-950/30">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400">
+            <div className="p-2 rounded-xl bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/40 text-red-600 dark:text-red-400">
               <AlertTriangle className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white font-mono">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white font-mono">
                 Confirmation de suppression
               </h3>
-              <p className="text-xs text-red-300">Action irréversible</p>
+              <p className="text-xs text-red-600 dark:text-red-300">Action irréversible</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -75,28 +74,28 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          <p className="text-sm text-slate-300 leading-relaxed">
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             Êtes-vous certain de vouloir supprimer définitivement ce support de cours ? Le fichier physique ainsi que toutes ses métadonnées seront supprimés du serveur.
           </p>
 
-          <div className="p-3.5 rounded-xl bg-cyber-darker border border-cyber-border space-y-1.5">
-            <div className="flex items-center space-x-2 text-xs font-semibold text-white">
-              <FileText className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-200 dark:border-cyber-border space-y-1.5">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-slate-900 dark:text-white">
+              <FileText className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
               <span className="truncate">{file.title}</span>
             </div>
-            <div className="text-[11px] text-slate-400 font-mono">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
               Rubrique : {file.rubriqueName} • Fichier : {file.originalName}
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end space-x-3 px-6 py-4 border-t border-cyber-border bg-cyber-darker/50">
+        <div className="flex items-center justify-end space-x-3 px-6 py-4 border-t border-slate-200 dark:border-cyber-border bg-slate-50/50 dark:bg-cyber-darker/50">
           <button
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-cyber-darker border border-cyber-border transition-all"
+            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-cyber-darker border border-slate-200 dark:border-cyber-border transition-all"
           >
             Annuler
           </button>
@@ -104,7 +103,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
             type="button"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-500 shadow-glow-red transition-all disabled:opacity-50"
+            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all disabled:opacity-50"
           >
             <Trash2 className="w-4 h-4" />
             <span>{isDeleting ? 'Suppression...' : 'Supprimer définitivement'}</span>

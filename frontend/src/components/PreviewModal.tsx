@@ -3,10 +3,8 @@ import {
   X, 
   Download, 
   FileText, 
-  Code, 
   Copy, 
   Check, 
-  ExternalLink,
   Terminal,
   Loader2
 } from 'lucide-react';
@@ -74,21 +72,21 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-4xl bg-cyber-card border border-cyber-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/85 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-4xl bg-white dark:bg-cyber-card border border-slate-200 dark:border-cyber-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col transition-colors">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-cyber-border bg-cyber-darker">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-cyber-border bg-slate-50 dark:bg-cyber-darker">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-cyber-blueLight">
+            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-cyber-blueLight">
               <Terminal className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-white font-mono truncate max-w-md">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white font-mono truncate max-w-md">
                 {file.title}
               </h3>
-              <p className="text-xs text-slate-400">
-                {file.originalName} • Rubrique : <span className="text-cyan-400">{file.rubriqueName}</span>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {file.originalName} • Rubrique : <span className="text-blue-600 dark:text-cyan-400">{file.rubriqueName}</span>
               </p>
             </div>
           </div>
@@ -97,9 +95,9 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
             {content && (
               <button
                 onClick={handleCopy}
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-cyber-card border border-cyber-border transition-all"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-cyber-card border border-slate-200 dark:border-cyber-border transition-all shadow-xs"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? 'Copié !' : 'Copier le code'}</span>
               </button>
             )}
@@ -107,7 +105,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
             <a
               href={`/api/files/${file.id}/download`}
               download={file.originalName}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-glow-blue transition-all"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-all"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Télécharger</span>
@@ -115,7 +113,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-2"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ml-2"
             >
               <X className="w-5 h-5" />
             </button>
@@ -123,7 +121,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
         </div>
 
         {/* Viewer Body */}
-        <div className="p-6 overflow-y-auto flex-1 bg-cyber-black flex flex-col">
+        <div className="p-6 overflow-y-auto flex-1 bg-slate-900 dark:bg-cyber-black flex flex-col">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin text-blue-400 mb-2" />
@@ -133,18 +131,18 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
             <iframe
               src={`/uploads/${file.filename}`}
               title={file.title}
-              className="w-full h-[65vh] rounded-xl border border-cyber-border bg-slate-900"
+              className="w-full h-[65vh] rounded-xl border border-slate-700 dark:border-cyber-border bg-slate-900"
             />
           ) : isImage ? (
             <div className="flex items-center justify-center p-4">
               <img
                 src={`/uploads/${file.filename}`}
                 alt={file.title}
-                className="max-h-[65vh] rounded-xl object-contain border border-cyber-border shadow-lg"
+                className="max-h-[65vh] rounded-xl object-contain border border-slate-700 dark:border-cyber-border shadow-lg"
               />
             </div>
           ) : content ? (
-            <pre className="p-4 rounded-xl bg-cyber-darker border border-cyber-border text-slate-200 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap selection:bg-blue-600">
+            <pre className="p-4 rounded-xl bg-slate-950 dark:bg-cyber-darker border border-slate-800 dark:border-cyber-border text-slate-200 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap selection:bg-blue-600">
               {content}
             </pre>
           ) : (
@@ -161,7 +159,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
               <a
                 href={`/api/files/${file.id}/download`}
                 download={file.originalName}
-                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-glow-blue transition-all"
+                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all"
               >
                 <Download className="w-4 h-4" />
                 <span>Télécharger le fichier ({file.originalName})</span>
