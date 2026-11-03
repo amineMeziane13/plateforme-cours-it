@@ -187,6 +187,6 @@
   ],
   "adminConfig": {
     "username": "admin",
-    "passwordHash": "admin123"
+    "passwordHash": "LOCKED_USE_EMAIL_OTP"
   }
 }

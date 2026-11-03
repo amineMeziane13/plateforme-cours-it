@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   ShieldCheck, 
@@ -25,6 +25,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onLoginSuccess,
   showToast
 }) => {
+  // Champs TOUJOURS vides par défaut - aucun pré-remplissage pour garantir la sécurité
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,9 +33,19 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   const [codeSent, setCodeSent] = useState(false);
   const [sentMessage, setSentMessage] = useState<string | null>(null);
 
+  // Réinitialiser systématiquement les champs à chaque ouverture/fermeture
+  useEffect(() => {
+    if (!isOpen) {
+      setUsername('');
+      setPassword('');
+      setCodeSent(false);
+      setSentMessage(null);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  // Request dynamic credentials sent to amine.blackline@gmail.com
+  // Demande de génération et d'envoi d'identifiants dynamiques à amine.blackline@gmail.com
   const handleRequestDynamicCredentials = async () => {
     setRequestingCode(true);
     try {
@@ -42,22 +53,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       setCodeSent(true);
       setSentMessage(data.message || 'Identifiants envoyés à amine.blackline@gmail.com');
 
-      if (data.tempCredentials) {
-        // Auto-fill for convenience if returned by backend
-        setUsername(data.tempCredentials.username);
-        setPassword(data.tempCredentials.password);
-        showToast(
-          'success', 
-          'Accès Dynamiques Générés', 
-          `Identifiants temporaires transmis pour amine.blackline@gmail.com (valables 10 min).`
-        );
-      } else {
-        showToast(
-          'success', 
-          'Email Envoyé !', 
-          `Vérifiez votre boîte de réception amine.blackline@gmail.com pour récupérer votre code temporaire.`
-        );
-      }
+      // Pour des raisons de sécurité, nous ne pré-remplissons JAMAIS les champs
+      // L'administrateur doit obligatoirement consulter sa boîte mail
+      showToast(
+        'success', 
+        'Code Envoyé par Email', 
+        `Consultez votre boîte amine.blackline@gmail.com pour récupérer votre identifiant et mot de passe (valables 10 min).`
+      );
     } catch (err: any) {
       showToast('error', 'Échec de la demande', err.message || 'Une erreur est survenue.');
     } finally {
@@ -68,7 +70,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      showToast('error', 'Champs requis', 'Veuillez saisir votre identifiant et mot de passe.');
+      showToast('error', 'Champs obligatoires', 'Veuillez saisir votre identifiant et votre mot de passe temporaire.');
       return;
     }
 
@@ -87,7 +89,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       showToast(
         'success', 
         'Authentification Réussie', 
-        `Bienvenue dans l'espace administrateur sécurisé (${data.user?.authType === 'DYNAMIC_EMAIL_OTP' ? 'OTP Email validé' : 'Accès validé'}).`
+        `Bienvenue dans l'espace administrateur sécurisé.`
       );
       onLoginSuccess();
       onClose();
@@ -118,7 +120,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Authentification temporaire liée à <strong className="text-blue-600 dark:text-blue-400 font-mono">amine.blackline@gmail.com</strong>
+                Authentification par email : <strong className="text-blue-600 dark:text-blue-400 font-mono">amine.blackline@gmail.com</strong>
               </p>
             </div>
           </div>
@@ -143,12 +145,12 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 </span>
               </div>
               <span className="text-[10px] font-mono text-blue-700 dark:text-cyan-300 bg-blue-100 dark:bg-cyan-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-cyan-500/30">
-                10 min de validité
+                Validité 10 min
               </span>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Pour une sécurité maximale, un identifiant et un mot de passe temporaires sont générés dynamiquement et envoyés à :
+              Pour des raisons de sécurité strictes, aucun mot de passe n'est pré-rempli. Cliquez ci-dessous pour recevoir vos identifiants temporaires sur :
               <br />
               <strong className="text-blue-600 dark:text-blue-400 font-mono font-semibold">amine.blackline@gmail.com</strong>
             </p>
@@ -175,44 +177,46 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             {codeSent && (
               <div className="flex items-center space-x-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>{sentMessage || 'Identifiants temporaires transmis avec succès.'}</span>
+                <span>{sentMessage || 'Identifiants transmis avec succès à amine.blackline@gmail.com.'}</span>
               </div>
             )}
           </div>
 
-          {/* Username Input */}
+          {/* Username Input - Vide par defaut */}
           <div>
             <label className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
               <span className="flex items-center space-x-1.5">
                 <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Nom d'utilisateur reçu</span>
+                <span>Identifiant reçu</span>
               </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">ex: admin ou admin_xxxx</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">ex: admin_xxxx</span>
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Saisissez l'identifiant reçu (ou 'admin')"
+              placeholder="Saisissez l'identifiant reçu par email"
+              autoComplete="off"
               required
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-blue-500 text-slate-900 dark:text-white text-sm outline-none transition-all font-mono placeholder-slate-400"
             />
           </div>
 
-          {/* Password Input */}
+          {/* Password Input - Vide par defaut */}
           <div>
             <label className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
               <span className="flex items-center space-x-1.5">
                 <Lock className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                 <span>Mot de passe temporaire (OTP)</span>
               </span>
-              <span className="text-[10px] text-red-600 dark:text-red-400 font-mono">ex: SEC-XXXXXX</span>
+              <span className="text-[10px] text-red-600 dark:text-red-400 font-mono">ex: SEC-xxxxxx</span>
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Entrez le mot de passe dynamique reçu par email"
+              placeholder="Saisissez le mot de passe temporaire reçu par email"
+              autoComplete="new-password"
               required
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-red-500 text-slate-900 dark:text-white text-sm outline-none transition-all font-mono placeholder-slate-400"
             />
@@ -232,7 +236,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
           <div className="text-center pt-1">
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              Protection sécurisée SSL / Session chiffrée • Accès restreint à l'administrateur
+              Protection sécurisée SSL • Aucun identifiant par défaut • Accès réservé
             </span>
           </div>
 
