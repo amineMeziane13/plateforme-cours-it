@@ -14,7 +14,10 @@ import {
   Lock,
   Type,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Fingerprint,
+  Smartphone,
+  Sparkles
 } from 'lucide-react';
 import { CourseFile } from '../types';
 
@@ -42,6 +45,12 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   const [isWindowBlurred, setIsWindowBlurred] = useState(false);
   const [screenshotWarning, setScreenshotWarning] = useState(false);
 
+  // Mobile Anti-Capture "Touch-to-Reveal / Hold-to-Read" state
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [touchToRead, setTouchToRead] = useState(true);
+  const [isTouching, setIsTouching] = useState(false);
+  const [realTime, setRealTime] = useState('');
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Clear clipboard with protection notice
@@ -55,6 +64,27 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     } catch (_) {}
   };
 
+  // Detect touch-capable devices (smartphones, tablets)
+  useEffect(() => {
+    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    setIsTouchDevice(isTouch);
+  }, []);
+
+  // Live second-by-second forensic watermark timestamp
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setRealTime(now.toLocaleTimeString('fr-FR', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      }));
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Fetch document preview when file opens
   useEffect(() => {
     if (!isOpen || !file) {
@@ -63,14 +93,16 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       setLoading(true);
       setIsWindowBlurred(false);
       setScreenshotWarning(false);
+      setIsTouching(false);
       return;
     }
 
     setLoading(true);
     setError(null);
     setIsWindowBlurred(false);
+    setIsTouching(false);
 
-    // Call server with ?format=json to inspect the true content on disk
+    // Call server with ?format=json to inspect true content on disk
     fetch(`/api/files/${file.id}/preview?format=json`, {
       headers: {
         'Accept': 'application/json'
@@ -136,7 +168,16 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       setIsWindowBlurred(false);
     };
 
-    // 4. Intercept all capture & copy keyboard shortcuts
+    // 4. Multi-finger touch interception (prevents 3-finger swipe screenshot on Android / iOS)
+    const handleTouchStartGlobal = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        setIsWindowBlurred(true);
+        setScreenshotWarning(true);
+        wipeClipboard();
+      }
+    };
+
+    // 5. Intercept all capture & copy keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintScreen = e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44;
       const isMetaKey = e.key === 'Meta' || e.code === 'MetaLeft' || e.code === 'MetaRight';
@@ -157,13 +198,13 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       }
     };
 
-    // 5. Block Context Menu (right click)
+    // 6. Block Context Menu (right click and long-press)
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
     };
 
-    // 6. Block Copy / Cut / Drag
+    // 7. Block Copy / Cut / Drag
     const handleCopy = (e: ClipboardEvent) => {
       e.preventDefault();
       wipeClipboard();
@@ -176,6 +217,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     document.addEventListener('visibilitychange', handleVisibilityChange);
     document.addEventListener('mouseleave', handleMouseLeave);
     document.addEventListener('mouseenter', handleMouseEnter);
+    window.addEventListener('touchstart', handleTouchStartGlobal, { passive: false });
     window.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('contextmenu', handleContextMenu, true);
     window.addEventListener('copy', handleCopy, true);
@@ -188,6 +230,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
+      window.removeEventListener('touchstart', handleTouchStartGlobal);
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('contextmenu', handleContextMenu, true);
       window.removeEventListener('copy', handleCopy, true);
@@ -206,6 +249,32 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     }
   };
 
+  // Mobile Touch-and-Hold handlers
+  const handleReaderTouchStart = (e: React.TouchEvent) => {
+    if (!touchToRead) return;
+    if (e.touches.length > 1) {
+      setIsTouching(false);
+      setIsWindowBlurred(true);
+      setScreenshotWarning(true);
+      wipeClipboard();
+      return;
+    }
+    setIsTouching(true);
+    setIsWindowBlurred(false);
+  };
+
+  const handleReaderTouchEnd = () => {
+    if (!touchToRead) return;
+    setIsTouching(false);
+    wipeClipboard();
+  };
+
+  const handleReaderTouchCancel = () => {
+    if (!touchToRead) return;
+    setIsTouching(false);
+    wipeClipboard();
+  };
+
   if (!isOpen || !file) return null;
 
   // Theme-dependent styles
@@ -215,19 +284,22 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     dark: 'bg-[#0F172A] text-slate-100 border-slate-800'
   }[readerTheme];
 
-  const currentTime = new Date().toLocaleDateString('fr-FR', {
+  const currentDate = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
   });
 
+  // Determine if document should be hidden on phone (when touch-to-read is enabled and user is NOT touching)
+  const isMobileMasked = isTouchDevice && touchToRead && !isTouching;
+
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in select-none"
       onContextMenu={(e) => e.preventDefault()}
-      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+      style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
     >
-      {/* Inject strict print disabling style */}
+      {/* Strict print disabling style */}
       <style>{`
         @media print {
           body, #root, .reader-modal-shield {
@@ -240,44 +312,60 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       <div 
         ref={containerRef}
         className={`reader-modal-shield relative w-full max-w-6xl h-[94vh] rounded-2xl flex flex-col shadow-2xl border overflow-hidden transition-colors ${themeClasses}`}
-        style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+        style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
       >
         
         {/* Top Control Bar */}
-        <header className="flex flex-wrap items-center justify-between px-4 sm:px-6 py-3 border-b border-inherit bg-black/5 dark:bg-white/5 gap-3">
+        <header className="flex flex-wrap items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-inherit bg-black/5 dark:bg-white/5 gap-2 sm:gap-3">
           
           {/* Document Title & Badges */}
-          <div className="flex items-center space-x-3 min-w-0">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
             <div className="p-2 rounded-xl bg-blue-600 text-white shadow-xs shrink-0">
               <BookOpen className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400">
-                  Mode Lecture Protégé
+                  Mode Protégé
                 </span>
                 <span className="text-xs opacity-40">•</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center space-x-1">
                   <ShieldCheck className="w-3 h-3" />
-                  <span>Anti-Capture Actif</span>
+                  <span>Bouclier Actif</span>
                 </span>
               </div>
-              <h2 className="text-xs sm:text-sm font-bold truncate max-w-sm sm:max-w-md lg:max-w-xl">
+              <h2 className="text-xs sm:text-sm font-bold truncate max-w-[200px] sm:max-w-md lg:max-w-xl">
                 {file.title}
               </h2>
             </div>
           </div>
 
           {/* Reader Action Controls */}
-          <div className="flex items-center space-x-2 text-xs">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs">
             
+            {/* Mobile Touch-Hold Security Toggle Button */}
+            {isTouchDevice && (
+              <button
+                onClick={() => setTouchToRead(prev => !prev)}
+                className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                  touchToRead 
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
+                    : 'bg-black/5 dark:bg-white/10 border-inherit text-slate-600 dark:text-slate-300'
+                }`}
+                title="Activer/Désactiver le maintien tactile anti-capture pour smartphone"
+              >
+                <Fingerprint className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Anti-Capture Tactile</span>
+              </button>
+            )}
+
             {/* Font Size Adjusters (for text documents) */}
             {fileType === 'text' && (
-              <div className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
+              <div className="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
                 <button 
                   onClick={() => setFontSize(prev => Math.max(12, prev - 1))}
                   className="px-1.5 py-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 font-bold font-mono"
-                  title="Diminuer la taille de police"
+                  title="Diminuer la police"
                 >
                   A-
                 </button>
@@ -285,7 +373,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 <button 
                   onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
                   className="px-1.5 py-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 font-bold font-mono"
-                  title="Augmenter la taille de police"
+                  title="Augmenter la police"
                 >
                   A+
                 </button>
@@ -304,7 +392,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               <button
                 onClick={() => setReaderTheme('sepia')}
                 className={`p-1.5 rounded-md ${readerTheme === 'sepia' ? 'bg-[#F2E5C8] shadow-xs text-[#5F4B32]' : 'opacity-60'}`}
-                title="Thème Sépia (Confort des yeux)"
+                title="Thème Sépia"
               >
                 <BookOpen className="w-3.5 h-3.5 text-amber-700" />
               </button>
@@ -318,7 +406,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
             </div>
 
             {/* Zoom Controls */}
-            <div className="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
+            <div className="hidden md:flex items-center space-x-1 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
               <button 
                 onClick={() => setZoom(prev => Math.max(60, prev - 15))}
                 className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10"
@@ -366,31 +454,36 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
 
         {/* Security Warning Notification */}
         {screenshotWarning && (
-          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-red-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2 animate-bounce border border-white/20">
+          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-2xl flex items-center space-x-2 animate-bounce border border-white/20">
             <ShieldAlert className="w-4 h-4" />
-            <span>Capture d'écran et copie strictement interdites • Dr. M.A. Meziane (ESE ORAN)</span>
+            <span>Capture d'écran neutralisée • Dr. M.A. Meziane (ESE ORAN)</span>
           </div>
         )}
 
-        {/* Reading Content Area with Watermark Layer */}
-        <div className="relative flex-1 overflow-auto p-4 sm:p-8 select-none">
+        {/* Reading Content Area with Watermark Layer and Touch-and-Hold Listener */}
+        <div 
+          className="relative flex-1 overflow-auto p-4 sm:p-8 select-none"
+          onTouchStart={handleReaderTouchStart}
+          onTouchEnd={handleReaderTouchEnd}
+          onTouchCancel={handleReaderTouchCancel}
+        >
           
-          {/* SEMI-TRANSPARENT REPEATING WATERMARK OVERLAY TILES */}
+          {/* SEMI-TRANSPARENT DYNAMIC WATERMARK OVERLAY WITH REAL-TIME CLOCK */}
           <div 
-            className="pointer-events-none absolute inset-0 z-10 flex flex-wrap items-center justify-around opacity-[0.08] dark:opacity-[0.07] overflow-hidden select-none"
+            className="pointer-events-none absolute inset-0 z-10 flex flex-wrap items-center justify-around opacity-[0.09] dark:opacity-[0.08] overflow-hidden select-none"
             aria-hidden="true"
           >
             {Array.from({ length: 24 }).map((_, i) => (
               <div 
                 key={i} 
-                className="text-xs sm:text-sm font-black uppercase font-mono tracking-widest rotate-[-30deg] p-8 whitespace-nowrap text-red-600 dark:text-cyan-400 select-none"
+                className="text-xs sm:text-sm font-black uppercase font-mono tracking-widest rotate-[-30deg] p-6 whitespace-nowrap text-red-600 dark:text-cyan-400 select-none"
               >
-                DR. M.A. MEZIANE • ESE ORAN • COPIE INTERDITE • {currentTime}
+                DR. M.A. MEZIANE • ESE ORAN • COPIE INTERDITE • {currentDate} {realTime}
               </div>
             ))}
           </div>
 
-          {/* Aggressive Blur Shield: activated on focus loss, snipping tool, mouse leave */}
+          {/* Desktop/System Blur Shield (Perte de focus / Outil capture externe) */}
           {isWindowBlurred && (
             <div 
               onClick={() => setIsWindowBlurred(false)}
@@ -403,14 +496,36 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 Affichage Masqué pour Protection Pédagogique
               </h4>
               <p className="text-xs text-slate-300 max-w-md leading-relaxed mb-4">
-                Pour empêcher toute capture d'écran non autorisée, le document est immédiatement flouté dès la perte de focus ou le déplacement du curseur.
+                Pour empêcher toute capture d'écran, le document est immédiatement flouté dès la perte de focus de la fenêtre.
               </p>
               <button 
                 onClick={() => setIsWindowBlurred(false)}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all"
               >
-                Reprendre la lecture sécurisée
+                Reprendre la lecture
               </button>
+            </div>
+          )}
+
+          {/* Mobile "Hold-to-Read" Anti-Screenshot Veil (Specific for Phones & Tablets) */}
+          {isMobileMasked && !isWindowBlurred && (
+            <div 
+              onTouchStart={handleReaderTouchStart}
+              className="absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-2xl flex flex-col items-center justify-center text-center p-6 text-white select-none cursor-pointer"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 mb-3 animate-pulse">
+                <Fingerprint className="w-9 h-9" />
+              </div>
+              <h3 className="text-sm font-bold font-mono text-white mb-1.5 uppercase tracking-wide">
+                Protection Anti-Capture Mobile Active
+              </h3>
+              <p className="text-xs text-slate-300 max-w-xs leading-relaxed mb-4">
+                Maintenez votre doigt sur l'écran pour lire ce cours. Dès que vous retirez le doigt (ex: pour presser les boutons de capture du téléphone), le document redevient instantanément noir.
+              </p>
+              <div className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg animate-bounce">
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+                <span>Posez et maintenez votre doigt ici pour lire</span>
+              </div>
             </div>
           )}
 
@@ -456,22 +571,22 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
             ) : (
               /* High-Quality Protected Code / Script / Text Reader */
               <div 
-                className="w-full max-w-4xl rounded-2xl p-6 sm:p-8 font-mono shadow-sm border border-inherit overflow-x-auto leading-relaxed select-none"
+                className="w-full max-w-4xl rounded-2xl p-4 sm:p-8 font-mono shadow-sm border border-inherit overflow-x-auto leading-relaxed select-none"
                 style={{ fontSize: `${fontSize}px`, userSelect: 'none', WebkitUserSelect: 'none' }}
               >
-                <div className="flex items-center justify-between pb-4 mb-4 border-b border-inherit text-xs opacity-75 font-sans">
-                  <span>Support de cours : <strong>{file.title}</strong> ({file.originalName})</span>
-                  <span>{content ? content.split('\n').length : 0} lignes de cours</span>
+                <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 border-b border-inherit text-xs opacity-75 font-sans">
+                  <span>Support de cours : <strong>{file.title}</strong></span>
+                  <span>{content ? content.split('\n').length : 0} lignes</span>
                 </div>
 
                 <pre className="overflow-x-auto whitespace-pre-wrap font-mono select-none">
                   {content ? (
                     content.split('\n').map((line, idx) => (
-                      <div key={idx} className="flex space-x-4 hover:bg-black/5 dark:hover:bg-white/5 px-2 rounded">
-                        <span className="w-8 text-right opacity-30 select-none text-[11px] font-mono flex-shrink-0">
+                      <div key={idx} className="flex space-x-3 sm:space-x-4 hover:bg-black/5 dark:hover:bg-white/5 px-1 sm:px-2 rounded">
+                        <span className="w-6 sm:w-8 text-right opacity-30 select-none text-[10px] sm:text-[11px] font-mono flex-shrink-0">
                           {idx + 1}
                         </span>
-                        <span className="flex-1 font-mono">{line || ' '}</span>
+                        <span className="flex-1 font-mono text-xs sm:text-sm">{line || ' '}</span>
                       </div>
                     ))
                   ) : (
@@ -485,13 +600,13 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
         </div>
 
         {/* Footer Security Notice */}
-        <footer className="px-6 py-2.5 border-t border-inherit text-[11px] opacity-75 flex flex-col sm:flex-row items-center justify-between gap-2 bg-black/5 dark:bg-white/5 font-mono">
+        <footer className="px-4 sm:px-6 py-2 sm:py-2.5 border-t border-inherit text-[10px] sm:text-[11px] opacity-75 flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-2 bg-black/5 dark:bg-white/5 font-mono">
           <div className="flex items-center space-x-2">
-            <Lock className="w-3.5 h-3.5 text-blue-500" />
-            <span>Mode Lecture Sécurisée • Téléchargement & Capture désactivés</span>
+            <Lock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span className="truncate">Mode Lecture Sécurisée • Téléchargement & Capture désactivés</span>
           </div>
-          <div>
-            © {new Date().getFullYear()} — Dr. M.A. Meziane (ESE ORAN) • Tous droits réservés
+          <div className="truncate">
+            © {new Date().getFullYear()} — Dr. M.A. Meziane (ESE ORAN)
           </div>
         </footer>
 
