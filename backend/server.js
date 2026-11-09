@@ -120,21 +120,16 @@ app.post('/api/auth/login', (req, res) => {
     });
   }
 
-  // 2. Master administrator password for Amine (secure, never prefilled, configurable via ADMIN_MASTER_PASSWORD)
-  const masterPass = process.env.ADMIN_MASTER_PASSWORD || 'AmineAdmin2026!';
-  const allowedUsers = [
-    (process.env.ADMIN_MASTER_USERNAME || 'amine').toLowerCase(),
-    'admin'
-  ];
-
-  if (allowedUsers.includes(cleanUser) && cleanPass === masterPass) {
+  // 2. Master administrator password for Amine (secure, never prefilled, checked against DB or env)
+  if (db.verifyMasterAdmin(cleanUser, cleanPass)) {
+    const adminConfig = db.getAdminConfig();
     return res.json({
       success: true,
       token: 'admin-master-token-' + Date.now(),
       user: { 
-        username: 'amine', 
+        username: adminConfig.username || 'amine', 
         role: 'ADMINISTRATEUR',
-        email: ADMIN_EMAIL,
+        email: adminConfig.email || ADMIN_EMAIL,
         authType: 'MASTER'
       }
     });
@@ -142,6 +137,54 @@ app.post('/api/auth/login', (req, res) => {
 
   return res.status(401).json({ 
     error: dynamicCheck.reason || 'Identifiants incorrects. Veuillez utiliser le code reçu par email ou votre mot de passe administrateur.' 
+  });
+});
+
+// Admin Settings: get configuration (masked password)
+app.get('/api/admin/settings', (req, res) => {
+  const token = req.headers.authorization;
+  if (!token) return res.status(401).json({ error: 'Non autorisé.' });
+
+  const config = db.getAdminConfig();
+  res.json({
+    username: config.username || 'amine',
+    email: config.email || 'amine.blackline@gmail.com',
+    smtp: {
+      service: config.smtp?.service || 'gmail',
+      user: config.smtp?.user || '',
+      hasPass: !!(config.smtp?.pass || process.env.EMAIL_PASS)
+    }
+  });
+});
+
+// Admin Settings: update configuration directly in database.json
+app.put('/api/admin/settings', (req, res) => {
+  const token = req.headers.authorization;
+  if (!token) return res.status(401).json({ error: 'Non autorisé.' });
+
+  const { email, smtpPass, masterPassword } = req.body;
+  const updates = {};
+  if (email) updates.email = email.trim();
+  if (masterPassword) updates.masterPassword = masterPassword.trim();
+  if (typeof smtpPass !== 'undefined') {
+    updates.smtp = {
+      pass: smtpPass.trim()
+    };
+  }
+
+  const updated = db.updateAdminConfig(updates);
+  res.json({
+    success: true,
+    message: 'Configuration SMTP et sécurité mise à jour dans la base de données.',
+    config: {
+      username: updated.username,
+      email: updated.email,
+      smtp: {
+        service: updated.smtp?.service,
+        user: updated.smtp?.user,
+        hasPass: !!updated.smtp?.pass
+      }
+    }
   });
 });
 

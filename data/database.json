@@ -186,7 +186,14 @@
     }
   ],
   "adminConfig": {
-    "username": "admin",
-    "passwordHash": "LOCKED_USE_EMAIL_OTP"
-  }
+    "username": "amine",
+    "email": "amine.blackline@gmail.com",
+    "masterPassword": "AmineAdmin2026!",
+    "smtp": {
+      "service": "gmail",
+      "user": "amine.blackline@gmail.com",
+      "pass": ""
+    }
+  },
+  "dynamicAuth": null
 }

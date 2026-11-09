@@ -282,9 +282,16 @@ class Database {
       rubriques: [],
       files: [],
       adminConfig: {
-        username: 'admin',
-        passwordHash: 'admin123' // default admin password, can be changed
-      }
+        username: 'amine',
+        email: 'amine.blackline@gmail.com',
+        masterPassword: 'AmineAdmin2026!',
+        smtp: {
+          service: 'gmail',
+          user: 'amine.blackline@gmail.com',
+          pass: ''
+        }
+      },
+      dynamicAuth: null
     };
     this.init();
   }
@@ -294,6 +301,30 @@ class Database {
       try {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
         this.data = JSON.parse(raw);
+
+        // Ensure robust security and email configuration in DB
+        if (!this.data.adminConfig) {
+          this.data.adminConfig = {};
+        }
+        if (!this.data.adminConfig.email) {
+          this.data.adminConfig.email = 'amine.blackline@gmail.com';
+        }
+        if (!this.data.adminConfig.username) {
+          this.data.adminConfig.username = 'amine';
+        }
+        if (!this.data.adminConfig.masterPassword) {
+          this.data.adminConfig.masterPassword = 'AmineAdmin2026!';
+        }
+        if (!this.data.adminConfig.smtp) {
+          this.data.adminConfig.smtp = {
+            service: 'gmail',
+            user: 'amine.blackline@gmail.com',
+            pass: ''
+          };
+        }
+        if (typeof this.data.dynamicAuth === 'undefined') {
+          this.data.dynamicAuth = null;
+        }
       } catch (err) {
         console.error('Erreur lecture DB, réinitialisation...', err);
         this.seed();
@@ -563,11 +594,83 @@ class Database {
     };
   }
 
+  getAdminConfig() {
+    return this.data.adminConfig;
+  }
+
+  updateAdminConfig(newConfig) {
+    this.data.adminConfig = {
+      ...this.data.adminConfig,
+      ...newConfig,
+      smtp: {
+        ...(this.data.adminConfig?.smtp || {}),
+        ...(newConfig?.smtp || {})
+      }
+    };
+    this.save();
+    return this.data.adminConfig;
+  }
+
+  setDynamicOtp(otp) {
+    this.data.dynamicAuth = {
+      username: otp.username,
+      password: otp.password,
+      expiresAt: otp.expiresAt,
+      createdAt: otp.createdAt,
+      recipient: otp.recipient || this.data.adminConfig?.email || 'amine.blackline@gmail.com',
+      used: false
+    };
+    this.save();
+    return this.data.dynamicAuth;
+  }
+
+  getDynamicOtp() {
+    return this.data.dynamicAuth;
+  }
+
+  verifyDynamicOtp(username, password) {
+    const current = this.data.dynamicAuth;
+    if (!current) {
+      return { valid: false, reason: 'Aucun code temporaire actif. Veuillez en demander un nouveau.' };
+    }
+
+    if (Date.now() > current.expiresAt) {
+      this.data.dynamicAuth = null;
+      this.save();
+      return { valid: false, reason: 'Ces identifiants dynamiques ont expiré (validité 10 minutes).' };
+    }
+
+    if (current.used) {
+      return { valid: false, reason: 'Ces identifiants ont déjà été utilisés.' };
+    }
+
+    const matchUser = current.username.toLowerCase() === (username || '').trim().toLowerCase();
+    const matchPass = current.password === (password || '').trim();
+
+    if (matchUser && matchPass) {
+      current.used = true;
+      this.save();
+      return { valid: true };
+    }
+
+    return { valid: false, reason: 'Nom d\'utilisateur ou mot de passe temporaire incorrect.' };
+  }
+
+  verifyMasterAdmin(username, password) {
+    const cleanUser = (username || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    const masterUser = (process.env.ADMIN_MASTER_USERNAME || this.data.adminConfig?.username || 'amine').toLowerCase();
+    const masterPass = process.env.ADMIN_MASTER_PASSWORD || this.data.adminConfig?.masterPassword || 'AmineAdmin2026!';
+
+    const isUserValid = cleanUser === masterUser || cleanUser === 'admin';
+    const isPassValid = cleanPass === masterPass;
+
+    return isUserValid && isPassValid;
+  }
+
   verifyAdmin(username, password) {
-    return (
-      username === this.data.adminConfig.username &&
-      password === this.data.adminConfig.passwordHash
-    );
+    return this.verifyMasterAdmin(username, password);
   }
 }
 

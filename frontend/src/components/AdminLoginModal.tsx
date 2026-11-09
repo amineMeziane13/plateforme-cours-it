@@ -195,13 +195,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 <div className="text-[11px] text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-300 dark:border-amber-500/40 space-y-1.5">
                   <div className="flex items-center space-x-1.5 font-bold text-amber-900 dark:text-amber-300">
                     <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                    <span>Serveur SMTP non configuré sur Render</span>
+                    <span>Configuration SMTP requise pour l'envoi d'emails</span>
                   </div>
                   <p className="leading-relaxed text-slate-700 dark:text-slate-300">
-                    Pour recevoir de réels emails, configurez <code className="font-mono bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded text-amber-900 dark:text-amber-200">EMAIL_USER</code> et <code className="font-mono bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded text-amber-900 dark:text-amber-200">EMAIL_PASS</code> dans Render &gt; Environment.
+                    Pour envoyer l'email automatiquement, renseignez votre mot de passe d'application Google dans la base de données (<code className="font-mono bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded text-amber-900 dark:text-amber-200">data/database.json</code>) ou dans les variables Render (<code className="font-mono bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded text-amber-900 dark:text-amber-200">EMAIL_PASS</code>).
                   </p>
                   <p className="text-slate-600 dark:text-slate-400 pt-1 border-t border-amber-200 dark:border-amber-500/20">
-                    👉 Vous pouvez vous connecter immédiatement ci-dessous avec votre <strong>mot de passe administrateur principal</strong> (Option 2).
+                    👉 Vous pouvez vous connecter immédiatement ci-dessous avec votre identifiant <strong className="text-slate-900 dark:text-white font-mono">amine</strong> et votre <strong>mot de passe administrateur</strong>.
                   </p>
                 </div>
               )

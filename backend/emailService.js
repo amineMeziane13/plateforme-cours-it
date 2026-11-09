@@ -1,10 +1,7 @@
 import nodemailer from 'nodemailer';
+import { db } from './db.js';
 
-export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'amine.blackline@gmail.com';
-
-// In-memory store for active dynamic credentials (can hold active OTPs)
-// Format: { username, password, expiresAt, createdAt, used: false }
-let currentDynamicAuth = null;
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || db.getAdminConfig()?.email || 'amine.blackline@gmail.com';
 
 // Helper to generate dynamic username & high-security password
 export function generateDynamicCredentials() {
@@ -15,56 +12,39 @@ export function generateDynamicCredentials() {
   const password = `SEC-${randomPass}`;
   const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
 
-  currentDynamicAuth = {
+  const dynamicAuth = {
     username,
     password,
     expiresAt,
     createdAt: new Date().toISOString(),
+    recipient: process.env.ADMIN_EMAIL || db.getAdminConfig()?.email || 'amine.blackline@gmail.com',
     used: false
   };
 
-  return currentDynamicAuth;
+  // Persist directly in database so it survives server reboots/sleeps
+  db.setDynamicOtp(dynamicAuth);
+
+  return dynamicAuth;
 }
 
-// Verify dynamic credentials
+// Verify dynamic credentials via database
 export function verifyDynamicCredentials(username, password) {
-  if (!currentDynamicAuth) {
-    return { valid: false, reason: 'Aucun code temporaire actif. Veuillez en demander un nouveau.' };
-  }
-
-  if (Date.now() > currentDynamicAuth.expiresAt) {
-    currentDynamicAuth = null;
-    return { valid: false, reason: 'Ces identifiants dynamiques ont expiré (validité 10 minutes).' };
-  }
-
-  if (currentDynamicAuth.used) {
-    return { valid: false, reason: 'Ces identifiants ont déjà été utilisés.' };
-  }
-
-  const matchUser = currentDynamicAuth.username.toLowerCase() === (username || '').trim().toLowerCase();
-  const matchPass = currentDynamicAuth.password === (password || '').trim();
-
-  // Allow either exact dynamic username or 'admin' with the dynamic password for convenience
-  const isUsernameAccepted = matchUser || (username || '').trim().toLowerCase() === 'admin';
-
-  if (isUsernameAccepted && matchPass) {
-    currentDynamicAuth.used = true; // invalidate for single-use
-    return { valid: true };
-  }
-
-  return { valid: false, reason: 'Nom d\'utilisateur ou mot de passe temporaire incorrect.' };
+  return db.verifyDynamicOtp(username, password);
 }
 
-// Create mail transporter
+// Create mail transporter (checks both environment variables AND database configuration)
 function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = (process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER || '').trim();
-  const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '';
+  const dbConfig = db.getAdminConfig();
+  const smtp = dbConfig?.smtp || {};
+
+  const host = process.env.SMTP_HOST || smtp.host;
+  const port = parseInt(process.env.SMTP_PORT || smtp.port || '587', 10);
+  const user = (process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER || smtp.user || '').trim();
+  const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || smtp.pass || '';
   const pass = rawPass.replace(/\s+/g, '').trim(); // Remove spaces often found in Google 16-character app passwords
 
   if (user && pass) {
-    if (host) {
+    if (host && host !== 'smtp.gmail.com') {
       return nodemailer.createTransport({
         host,
         port,
