@@ -4,9 +4,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../data');
+const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
-const UPLOADS_DIR = path.resolve(__dirname, '../uploads');
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(__dirname, '../uploads');
 
 // Ensure directories exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -327,6 +327,7 @@ class Database {
         }
 
         // Ensure group leaders and messages collections exist
+        let needsSave = false;
         if (!this.data.groupLeaders) {
           this.data.groupLeaders = [
             {
@@ -338,9 +339,11 @@ class Database {
               createdAt: new Date().toISOString()
             }
           ];
+          needsSave = true;
         }
         if (!this.data.messages) {
           this.data.messages = [];
+          needsSave = true;
         }
 
         // Ensure sous-rubriques exist on all rubriques
@@ -354,24 +357,45 @@ class Database {
                   { id: 'sub-sec-2', name: 'Sécurité Réseaux & Pare-feu', description: 'IPTables, IDS/IPS, VPN, DMZ' },
                   { id: 'sub-sec-3', name: 'Ethical Hacking & Pentesting', description: 'Audits de sécurité, tests d\'intrusion' }
                 ];
+                needsSave = true;
               } else if (r.id === 'rub-web') {
                 r.sousRubriques = [
                   { id: 'sub-web-1', name: 'Frontend React & TypeScript', description: 'Composants modernes, Hooks, Tailwind' },
                   { id: 'sub-web-2', name: 'Backend Node.js & API REST', description: 'Express, JWT, architectures microservices' }
                 ];
+                needsSave = true;
               } else if (r.id === 'rub-reseaux') {
                 r.sousRubriques = [
                   { id: 'sub-res-1', name: 'Routage & Commutation Cisco', description: 'OSPF, BGP, VLANs, Spanning-Tree' },
                   { id: 'sub-res-2', name: 'Protocoles TCP/IP & Services', description: 'DNS, DHCP, HTTP/3, Wireshark' }
                 ];
+                needsSave = true;
               } else if (r.id === 'rub-linux') {
                 r.sousRubriques = [
                   { id: 'sub-lin-1', name: 'Administration Système', description: 'Gestion des utilisateurs, permissions, services systemd' },
                   { id: 'sub-lin-2', name: 'Scripting Bash & Automatisation', description: 'Scripts avancés, cron jobs, parsing de logs' }
                 ];
+                needsSave = true;
               }
             }
           });
+        }
+
+        // Ensure sample physical files exist on disk if missing on container boot
+        if (Array.isArray(this.data.files)) {
+          this.data.files.forEach(f => {
+            const filePath = path.join(UPLOADS_DIR, f.filename);
+            if (!fs.existsSync(filePath)) {
+              const sample = sampleFiles.find(s => s.filename === f.filename);
+              if (sample) {
+                fs.writeFileSync(filePath, sample.content, 'utf8');
+              }
+            }
+          });
+        }
+
+        if (needsSave) {
+          this.save();
         }
       } catch (err) {
         console.error('Erreur lecture DB, réinitialisation...', err);

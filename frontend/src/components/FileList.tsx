@@ -18,7 +18,9 @@ import {
   ArrowLeft,
   Layers,
   BookOpen,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 import { CourseFile, FilterState, Rubrique } from '../types';
 
@@ -298,8 +300,12 @@ export const FileList: React.FC<FileListProps> = ({
                     </button>
                   </div>
 
-                  {/* Course Title */}
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyber-blueLight transition-colors leading-snug line-clamp-2">
+                  {/* Course Title - Clickable to open protected reader */}
+                  <h3 
+                    onClick={() => onPreview(file)}
+                    className="font-bold text-base text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyber-blueLight transition-colors leading-snug line-clamp-2 cursor-pointer"
+                    title="Cliquez pour consulter ce cours en mode protégé"
+                  >
                     {file.title}
                   </h3>
 
@@ -371,14 +377,15 @@ export const FileList: React.FC<FileListProps> = ({
                   {/* Action Buttons: Pure Online Reading Mode (No Download) */}
                   <div className="flex items-center space-x-2">
                     
-                    {/* Primary Online Reader Button */}
+                    {/* Primary Online Reader Button with anti-capture protection */}
                     <button
                       onClick={() => onPreview(file)}
-                      className="flex-1 inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xs hover:shadow-md transition-all active:scale-95 group/btn"
+                      className="flex-1 inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 shadow-xs hover:shadow-md transition-all active:scale-95 group/btn"
+                      title="Consulter le cours en mode lecture protégé (anti-capture d'écran)"
                     >
-                      <BookOpen className="w-4 h-4 text-white group-hover/btn:scale-110 transition-transform" />
-                      <span>Mode Lecture</span>
-                      <Sparkles className="w-3.5 h-3.5 text-yellow-300 opacity-80" />
+                      <ShieldCheck className="w-4 h-4 text-emerald-300" />
+                      <span>Lire en Mode Protégé</span>
+                      <Lock className="w-3.5 h-3.5 text-blue-200" />
                     </button>
 
                     {/* Admin Actions: Edit & Delete */}

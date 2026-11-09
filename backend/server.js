@@ -356,6 +356,32 @@ app.post('/api/admin/messages/:id/reply', (req, res) => {
   res.json(updated);
 });
 
+// Admin Backup Database
+app.get('/api/admin/database/backup', (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="database-backup-${Date.now()}.json"`);
+    res.send(JSON.stringify(db.data, null, 2));
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la sauvegarde.' });
+  }
+});
+
+// Admin Restore Database
+app.post('/api/admin/database/restore', (req, res) => {
+  try {
+    const backupData = req.body;
+    if (!backupData || !backupData.rubriques || !backupData.files) {
+      return res.status(400).json({ error: 'Format de fichier de sauvegarde invalide.' });
+    }
+    db.data = backupData;
+    db.save();
+    res.json({ success: true, message: 'Base de données restaurée avec succès.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la restauration.' });
+  }
+});
+
 // ==========================================
 // FILES (COURSES, DOCUMENTS, TDS, TPS)
 // ==========================================
@@ -512,40 +538,67 @@ app.get(['/api/files/:id/preview', '/api/files/:id/view'], (req, res) => {
 
     const physicalPath = path.join(UPLOADS_DIR, file.filename);
     if (!fs.existsSync(physicalPath)) {
-      return res.status(404).json({ error: 'Fichier physique introuvable' });
+      return res.status(404).json({ error: 'Fichier physique introuvable sur le serveur.' });
     }
 
     // Increment view / read count
     db.incrementViews(id);
 
     const ext = path.extname(file.originalName || file.filename).toLowerCase();
-    
-    // Check if file is text/code so we can send as text or utf8
-    const textExts = ['.txt', '.sh', '.py', '.js', '.ts', '.sql', '.html', '.css', '.json', '.md', '.c', '.cpp', '.java'];
-    if (textExts.includes(ext)) {
-      const content = fs.readFileSync(physicalPath, 'utf8');
+    const buffer = fs.readFileSync(physicalPath);
+
+    // Precise format detection
+    const isRealPdf = buffer.length >= 5 && buffer.slice(0, 5).toString('ascii') === '%PDF-';
+    const isImage = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext) || file.mimeType?.startsWith('image/');
+
+    // Check if client requests JSON format for protected in-app Reader
+    const wantsJson = req.query.format === 'json' || req.headers.accept?.includes('application/json');
+
+    if (wantsJson) {
+      if (isRealPdf) {
+        return res.json({
+          type: 'pdf',
+          title: file.title,
+          originalName: file.originalName,
+          dataUrl: `data:application/pdf;base64,${buffer.toString('base64')}`
+        });
+      }
+      if (isImage) {
+        return res.json({
+          type: 'image',
+          title: file.title,
+          originalName: file.originalName,
+          dataUrl: `data:${file.mimeType || 'image/png'};base64,${buffer.toString('base64')}`
+        });
+      }
+      // Text, code, markdown or text disguised as pdf
       return res.json({
         type: 'text',
-        language: ext.replace('.', ''),
+        language: ext.replace('.', '') || 'markdown',
         title: file.title,
-        content
+        originalName: file.originalName,
+        content: buffer.toString('utf8')
       });
     }
 
-    // For PDF and images, stream directly with appropriate inline content-type & security headers
+    // Direct streaming mode with protective headers
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('Cache-Control', 'private, no-transform, max-age=1800');
 
-    if (ext === '.pdf') {
+    if (isRealPdf) {
       res.setHeader('Content-Type', 'application/pdf');
-    } else if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext)) {
+      return res.send(buffer);
+    }
+    if (isImage) {
       res.setHeader('Content-Type', file.mimeType || 'image/png');
+      return res.send(buffer);
     }
 
-    fs.createReadStream(physicalPath).pipe(res);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.send(buffer);
   } catch (error) {
-    console.error('Erreur prévisualisation:', error);
+    console.error('Erreur lecture du document:', error);
     res.status(500).json({ error: 'Erreur lors de la lecture du document.' });
   }
 });
