@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
+import { RubriquesGrid } from './components/RubriquesGrid';
 import { RubriquesBar } from './components/RubriquesBar';
 import { FileList } from './components/FileList';
 import { UploadModal } from './components/UploadModal';
@@ -185,27 +186,44 @@ export function App() {
           onOpenUpload={() => setIsUploadOpen(true)}
         />
 
-        {/* Rubriques Selector Bar */}
-        <RubriquesBar
-          rubriques={rubriques}
-          selectedRubriqueId={filters.rubriqueId}
-          onSelectRubrique={handleSelectRubrique}
-          isAdmin={isAdmin}
-          onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
-        />
+        {/* Dynamic Display:
+            1. If filters.rubriqueId === 'all' AND no search:
+               Display large RubriquesGrid (the large icon cards for each category)
+            2. If a rubrique is selected OR user typed a search query:
+               Display FileList with the files corresponding to that category / search
+        */}
+        {filters.rubriqueId === 'all' && !filters.search.trim() ? (
+          <RubriquesGrid
+            rubriques={rubriques}
+            onSelectRubrique={handleSelectRubrique}
+            isAdmin={isAdmin}
+            onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
+          />
+        ) : (
+          <>
+            {/* Rubriques Selector Bar for quick switching */}
+            <RubriquesBar
+              rubriques={rubriques}
+              selectedRubriqueId={filters.rubriqueId}
+              onSelectRubrique={handleSelectRubrique}
+              isAdmin={isAdmin}
+              onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
+            />
 
-        {/* File Grid & Filtering */}
-        <FileList
-          files={files}
-          rubriques={rubriques}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          isAdmin={isAdmin}
-          onPreview={handleOpenPreview}
-          onEdit={handleOpenEdit}
-          onDelete={handleOpenDelete}
-          onOpenUpload={() => setIsUploadOpen(true)}
-        />
+            {/* File Grid & Filtering */}
+            <FileList
+              files={files}
+              rubriques={rubriques}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              isAdmin={isAdmin}
+              onPreview={handleOpenPreview}
+              onEdit={handleOpenEdit}
+              onDelete={handleOpenDelete}
+              onOpenUpload={() => setIsUploadOpen(true)}
+            />
+          </>
+        )}
 
       </main>
 

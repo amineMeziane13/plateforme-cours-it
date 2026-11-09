@@ -15,7 +15,10 @@ import {
   ArrowUpDown, 
   Filter, 
   AlertCircle,
-  Plus
+  Plus,
+  ArrowLeft,
+  Layers,
+  BookOpen
 } from 'lucide-react';
 import { CourseFile, FilterState, Rubrique } from '../types';
 
@@ -112,6 +115,40 @@ export const FileList: React.FC<FileListProps> = ({
 
   return (
     <section className="py-6 sm:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      {/* Active Category Header with Back Button */}
+      {filters.rubriqueId !== 'all' && (
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-white dark:bg-cyber-card border border-blue-200 dark:border-blue-500/30 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <button
+              onClick={() => onFilterChange({ rubriqueId: 'all' })}
+              className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-cyber-darker hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 border border-slate-200 dark:border-cyber-border transition-all shadow-xs group"
+              title="Revenir à la vue de toutes les rubriques"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span>Toutes les Rubriques</span>
+            </button>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-mono uppercase font-bold text-blue-600 dark:text-cyber-blueLight">
+                  Rubrique Active
+                </span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {files.length} document{files.length > 1 ? 's' : ''} disponible{files.length > 1 ? 's' : ''}
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white font-mono">
+                {rubriques.find(r => r.id === filters.rubriqueId)?.name || 'Cours de la rubrique'}
+              </h2>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md hidden md:block">
+            {rubriques.find(r => r.id === filters.rubriqueId)?.description}
+          </p>
+        </div>
+      )}
       
       {/* Filtering & Sorting Controls Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8 bg-white dark:bg-cyber-card/60 p-4 rounded-xl border border-slate-200 dark:border-cyber-border shadow-xs transition-colors">
