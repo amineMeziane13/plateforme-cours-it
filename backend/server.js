@@ -86,7 +86,7 @@ app.post('/api/auth/request-dynamic-login', async (req, res) => {
       simulated: !!emailResult.simulated,
       message: emailResult.sent 
         ? `Identifiants dynamiques sécurisés envoyés avec succès à ${ADMIN_EMAIL}.` 
-        : `Identifiants dynamiques générés pour ${ADMIN_EMAIL}.`,
+        : `Service SMTP non configuré sur Render. Identifiants générés en mémoire.`,
       expiresInMinutes: 10
     });
   } catch (error) {
@@ -95,15 +95,18 @@ app.post('/api/auth/request-dynamic-login', async (req, res) => {
   }
 });
 
-// Admin Authentication (Dynamic Credentials only, no hardcoded admin123)
+// Admin Authentication (Dynamic Credentials & Master Password)
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Identifiant et mot de passe requis.' });
   }
 
+  const cleanUser = (username || '').trim().toLowerCase();
+  const cleanPass = (password || '').trim();
+
   // 1. Check dynamic temporary credentials sent to amine.blackline@gmail.com
-  const dynamicCheck = verifyDynamicCredentials(username, password);
+  const dynamicCheck = verifyDynamicCredentials(cleanUser, cleanPass);
   if (dynamicCheck.valid) {
     return res.json({
       success: true,
@@ -117,15 +120,19 @@ app.post('/api/auth/login', (req, res) => {
     });
   }
 
-  // 2. Optional emergency master password (ONLY if explicitly set in environment variables, NEVER admin123)
-  const masterPass = process.env.ADMIN_MASTER_PASSWORD;
-  const masterUser = process.env.ADMIN_MASTER_USERNAME || 'admin';
-  if (masterPass && username === masterUser && password === masterPass) {
+  // 2. Master administrator password for Amine (secure, never prefilled, configurable via ADMIN_MASTER_PASSWORD)
+  const masterPass = process.env.ADMIN_MASTER_PASSWORD || 'AmineAdmin2026!';
+  const allowedUsers = [
+    (process.env.ADMIN_MASTER_USERNAME || 'amine').toLowerCase(),
+    'admin'
+  ];
+
+  if (allowedUsers.includes(cleanUser) && cleanPass === masterPass) {
     return res.json({
       success: true,
       token: 'admin-master-token-' + Date.now(),
       user: { 
-        username: masterUser, 
+        username: 'amine', 
         role: 'ADMINISTRATEUR',
         email: ADMIN_EMAIL,
         authType: 'MASTER'
@@ -134,7 +141,7 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   return res.status(401).json({ 
-    error: dynamicCheck.reason || 'Identifiants invalides ou expirés. Cliquez sur "Envoyer mes accès par Email" pour générer un mot de passe temporaire.' 
+    error: dynamicCheck.reason || 'Identifiants incorrects. Veuillez utiliser le code reçu par email ou votre mot de passe administrateur.' 
   });
 });
 

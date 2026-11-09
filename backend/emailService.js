@@ -57,10 +57,22 @@ export function verifyDynamicCredentials(username, password) {
 
 // Create mail transporter
 function getTransporter() {
-  const user = process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER;
-  const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const user = (process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER || '').trim();
+  const rawPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '';
+  const pass = rawPass.replace(/\s+/g, '').trim(); // Remove spaces often found in Google 16-character app passwords
 
   if (user && pass) {
+    if (host) {
+      return nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: { user, pass }
+      });
+    }
+
     return nodemailer.createTransport({
       service: 'gmail',
       auth: { user, pass }

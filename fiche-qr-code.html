@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Affiche QR Code - Plateforme Cours IT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@600&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #080C14;
+      color: #F1F5F9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .flyer-card {
+      background: #0F172A;
+      border: 2px solid #1E2D4A;
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 580px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(37, 99, 235, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    .flyer-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #2563EB, #06B6D4, #EF4444);
+    }
+    .badge {
+      display: inline-block;
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.15);
+      color: #60A5FA;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      color: #FFFFFF;
+    }
+    h1 span {
+      background: linear-gradient(90deg, #60A5FA, #22D3EE, #F87171);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.subtitle {
+      font-size: 14px;
+      color: #94A3B8;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+    .qr-container {
+      background: #FFFFFF;
+      padding: 18px;
+      border-radius: 20px;
+      display: inline-block;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      margin-bottom: 24px;
+      border: 3px solid #2563EB;
+    }
+    .qr-container img {
+      display: block;
+      width: 250px;
+      height: 250px;
+    }
+    .url-pill {
+      background: #080C14;
+      border: 1px solid #1E2D4A;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      color: #38BDF8;
+      margin-bottom: 24px;
+      word-break: break-all;
+    }
+    .features-list {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .feature-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: #CBD5E1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 5px 12px;
+      border-radius: 8px;
+    }
+    .feature-tag.red {
+      color: #F87171;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .feature-tag.cyan {
+      color: #22D3EE;
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+    .feature-tag.blue {
+      color: #60A5FA;
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    .instructions {
+      font-size: 12px;
+      color: #64748B;
+      line-height: 1.6;
+    }
+    .actions-bar {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    button.btn {
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    button.btn-primary {
+      background: #2563EB;
+      color: white;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+    button.btn-primary:hover {
+      background: #1D4ED8;
+      transform: translateY(-2px);
+    }
+    button.btn-secondary {
+      background: #1E293B;
+      color: #CBD5E1;
+    }
+    button.btn-secondary:hover {
+      background: #334155;
+    }
+
+    /* Print styling */
+    @media print {
+      body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        padding: 0;
+      }
+      .actions-bar {
+        display: none !important;
+      }
+      .flyer-card {
+        background: #FFFFFF !important;
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+        color: #000000 !important;
+      }
+      h1, h1 span {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+      }
+      p.subtitle, .instructions {
+        color: #333333 !important;
+      }
+      .url-pill {
+        background: #F1F5F9 !important;
+        color: #000000 !important;
+        border: 1px solid #CCCCCC !important;
+      }
+      .feature-tag {
+        color: #000000 !important;
+        background: #EEEEEE !important;
+        border: 1px solid #DDDDDD !important;
+      }
+      .qr-container {
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flyer-card">
+    <div class="badge">ACADÉMIE INFORMATIQUE & RÉSEAUX</div>
+    
+    <h1>Plateforme de <span>Cours IT</span></h1>
+    <p class="subtitle">Scannez pour accéder aux supports de cours, TP, TD et examens</p>
+    
+    <div class="qr-container">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&data=https%3A%2F%2Fplateforme-cours-it.onrender.com%2F" alt="QR Code">
+    </div>
+
+    <div class="url-pill">
+      https://plateforme-cours-it.onrender.com/
+    </div>
+
+    <div class="features-list">
+      <span class="feature-tag red">🔒 Cybersécurité</span>
+      <span class="feature-tag blue">💻 Dév Web & Mobile</span>
+      <span class="feature-tag cyan">🌐 Réseaux & Cisco</span>
+      <span class="feature-tag blue">🐧 Linux & DevOps</span>
+      <span class="feature-tag red">⚡ Cloud & Docker</span>
+    </div>
+
+    <p class="instructions">
+      Ouvrez l'appareil photo de votre smartphone et pointez l'objectif vers le QR code ci-dessus pour ouvrir le portail.
+    </p>
+
+    <div class="actions-bar">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer l'Affiche (A4)</button>
+      <a href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=10&data=https%3A%2F%2Fplateforme-cours-it.onrender.com%2F" download="qrcode-plateforme-it.png" target="_blank" style="text-decoration:none;">
+        <button class="btn btn-secondary">💾 Télécharger Image HD</button>
+      </a>
+    </div>
+  </div>
+
+</body>
+</html>
