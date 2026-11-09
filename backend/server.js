@@ -246,6 +246,116 @@ app.delete('/api/rubriques/:id', (req, res) => {
   }
 });
 
+// Add sous-rubrique (Admin)
+app.post('/api/rubriques/:id/sous-rubriques', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Le nom de la sous-rubrique est requis.' });
+    }
+    const created = db.addSousRubrique(id, { name, description });
+    res.status(201).json(created);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete sous-rubrique (Admin)
+app.delete('/api/rubriques/:id/sous-rubriques/:subId', (req, res) => {
+  try {
+    const { id, subId } = req.params;
+    const deleted = db.deleteSousRubrique(id, subId);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Sous-rubrique introuvable.' });
+    }
+    res.json({ success: true, message: 'Sous-rubrique supprimée avec succès.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// GROUP LEADERS (RESPONSABLES DE GROUPE) & MESSAGING
+// ==========================================
+
+// Leader Login
+app.post('/api/leaders/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Identifiant et mot de passe requis.' });
+  }
+  const leader = db.verifyGroupLeader(username, password);
+  if (!leader) {
+    return res.status(401).json({ error: 'Identifiant ou mot de passe délégué incorrect.' });
+  }
+  res.json({
+    success: true,
+    token: 'leader-token-' + leader.id + '-' + Date.now(),
+    leader
+  });
+});
+
+// Leader Get Messages
+app.get('/api/leaders/messages', (req, res) => {
+  const { leaderId } = req.query;
+  const messages = db.getMessages(leaderId);
+  res.json(messages);
+});
+
+// Leader Send Message
+app.post('/api/leaders/messages', (req, res) => {
+  try {
+    const { leaderId, leaderName, groupName, subject, content } = req.body;
+    if (!subject || !content) {
+      return res.status(400).json({ error: 'Objet et message requis.' });
+    }
+    const msg = db.createMessage({ leaderId, leaderName, groupName, subject, content });
+    res.status(201).json(msg);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Admin Get Group Leaders
+app.get('/api/admin/leaders', (req, res) => {
+  res.json(db.getGroupLeaders());
+});
+
+// Admin Create Group Leader
+app.post('/api/admin/leaders', (req, res) => {
+  try {
+    const { username, password, studentName, groupName } = req.body;
+    const created = db.createGroupLeader({ username, password, studentName, groupName });
+    res.status(201).json(created);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Admin Delete Group Leader
+app.delete('/api/admin/leaders/:id', (req, res) => {
+  const success = db.deleteGroupLeader(req.params.id);
+  if (!success) return res.status(404).json({ error: 'Responsable introuvable.' });
+  res.json({ success: true });
+});
+
+// Admin Get All Messages from Leaders
+app.get('/api/admin/messages', (req, res) => {
+  res.json(db.getMessages());
+});
+
+// Admin Reply Message
+app.post('/api/admin/messages/:id/reply', (req, res) => {
+  const { reply } = req.body;
+  if (!reply || !reply.trim()) {
+    return res.status(400).json({ error: 'Réponse vide.' });
+  }
+  const updated = db.replyMessage(req.params.id, reply);
+  if (!updated) return res.status(404).json({ error: 'Message introuvable.' });
+  res.json(updated);
+});
+
 // ==========================================
 // FILES (COURSES, DOCUMENTS, TDS, TPS)
 // ==========================================
@@ -384,33 +494,15 @@ app.delete('/api/files/:id', (req, res) => {
   }
 });
 
-// Download file (with counter increment)
+// Download file - Disabled by pedagogical policy (viewing/reading on platform only)
 app.get('/api/files/:id/download', (req, res) => {
-  try {
-    const { id } = req.params;
-    const file = db.getFileById(id);
-    if (!file) {
-      return res.status(404).send('Fichier introuvable.');
-    }
-
-    const physicalPath = path.join(UPLOADS_DIR, file.filename);
-    if (!fs.existsSync(physicalPath)) {
-      return res.status(404).send('Le document physique n\'existe plus sur le serveur.');
-    }
-
-    // Increment download count
-    db.incrementDownloads(id);
-
-    // Prompt browser download with original name
-    res.download(physicalPath, file.originalName);
-  } catch (error) {
-    console.error('Erreur téléchargement:', error);
-    res.status(500).send('Erreur serveur lors du téléchargement.');
-  }
+  res.status(403).json({
+    error: 'Le téléchargement direct des fichiers est désactivé. Veuillez consulter le cours en mode lecture interactive et sécurisée sur la plateforme.'
+  });
 });
 
-// Preview file inline (text, code, pdf, image)
-app.get('/api/files/:id/preview', (req, res) => {
+// View / Preview file inline (text, code, pdf, image) with view counter increment
+app.get(['/api/files/:id/preview', '/api/files/:id/view'], (req, res) => {
   try {
     const { id } = req.params;
     const file = db.getFileById(id);
@@ -423,21 +515,28 @@ app.get('/api/files/:id/preview', (req, res) => {
       return res.status(404).json({ error: 'Fichier physique introuvable' });
     }
 
+    // Increment view / read count
+    db.incrementViews(id);
+
     const ext = path.extname(file.originalName || file.filename).toLowerCase();
     
     // Check if file is text/code so we can send as text or utf8
-    const textExts = ['.txt', '.sh', '.py', '.js', '.ts', '.sql', '.html', '.css', '.json', '.md'];
+    const textExts = ['.txt', '.sh', '.py', '.js', '.ts', '.sql', '.html', '.css', '.json', '.md', '.c', '.cpp', '.java'];
     if (textExts.includes(ext)) {
       const content = fs.readFileSync(physicalPath, 'utf8');
       return res.json({
         type: 'text',
         language: ext.replace('.', ''),
+        title: file.title,
         content
       });
     }
 
-    // For PDF and images, stream directly with appropriate inline content-type
+    // For PDF and images, stream directly with appropriate inline content-type & security headers
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+
     if (ext === '.pdf') {
       res.setHeader('Content-Type', 'application/pdf');
     } else if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext)) {
@@ -447,7 +546,7 @@ app.get('/api/files/:id/preview', (req, res) => {
     fs.createReadStream(physicalPath).pipe(res);
   } catch (error) {
     console.error('Erreur prévisualisation:', error);
-    res.status(500).json({ error: 'Erreur lors de la prévisualisation.' });
+    res.status(500).json({ error: 'Erreur lors de la lecture du document.' });
   }
 });
 

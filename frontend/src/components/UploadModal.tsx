@@ -37,6 +37,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [rubriqueId, setRubriqueId] = useState(defaultRubriqueId || (rubriques[0]?.id || ''));
+  const [sousRubriqueId, setSousRubriqueId] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('Licence 3');
   const [professor, setProfessor] = useState('');
@@ -113,6 +114,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({
       formData.append('file', file);
       formData.append('title', title.trim());
       formData.append('rubriqueId', rubriqueId);
+      if (sousRubriqueId) {
+        formData.append('sousRubriqueId', sousRubriqueId);
+      }
       formData.append('description', description.trim());
       formData.append('level', level);
       formData.append('professor', professor.trim());
@@ -246,7 +250,10 @@ export const UploadModal: React.FC<UploadModalProps> = ({
               </label>
               <select
                 value={rubriqueId}
-                onChange={(e) => setRubriqueId(e.target.value)}
+                onChange={(e) => {
+                  setRubriqueId(e.target.value);
+                  setSousRubriqueId('');
+                }}
                 required
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-cyan-500 text-slate-900 dark:text-white text-sm outline-none transition-all"
               >
@@ -258,6 +265,34 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                 ))}
               </select>
             </div>
+
+            {/* Optional Sous-Rubrique if selected rubrique has any */}
+            {(() => {
+              const currentRub = rubriques.find(r => r.id === rubriqueId);
+              if (currentRub && currentRub.sousRubriques && currentRub.sousRubriques.length > 0) {
+                return (
+                  <div className="md:col-span-2">
+                    <label className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 font-mono">
+                      <Layers className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Sous-rubrique / Chapitre (Optionnel)</span>
+                    </label>
+                    <select
+                      value={sousRubriqueId}
+                      onChange={(e) => setSousRubriqueId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border focus:border-blue-500 text-slate-900 dark:text-white text-sm outline-none transition-all"
+                    >
+                      <option value="">-- Sans sous-rubrique (Général) --</option>
+                      {currentRub.sousRubriques.map((sub) => (
+                        <option key={sub.id} value={sub.id} className="bg-white dark:bg-cyber-darker text-slate-900 dark:text-white">
+                          {sub.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {/* Course Title */}
             <div className="md:col-span-2">

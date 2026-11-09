@@ -5,7 +5,6 @@ import {
   FileArchive, 
   Presentation, 
   FileCheck, 
-  Download, 
   Eye, 
   Edit3, 
   Trash2, 
@@ -18,7 +17,8 @@ import {
   Plus,
   ArrowLeft,
   Layers,
-  BookOpen
+  BookOpen,
+  Sparkles
 } from 'lucide-react';
 import { CourseFile, FilterState, Rubrique } from '../types';
 
@@ -103,50 +103,82 @@ export const FileList: React.FC<FileListProps> = ({
     }
   };
 
-  // Direct download trigger
-  const handleDownload = (id: string, fileName: string) => {
-    const link = document.createElement('a');
-    link.href = `/api/files/${id}/download`;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const selectedRubrique = rubriques.find(r => r.id === filters.rubriqueId);
 
   return (
     <section className="py-6 sm:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      {/* Active Category Header with Back Button */}
+      {/* Active Category Header with Back Button and Sub-categories */}
       {filters.rubriqueId !== 'all' && (
-        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-white dark:bg-cyber-card border border-blue-200 dark:border-blue-500/30 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3.5">
-            <button
-              onClick={() => onFilterChange({ rubriqueId: 'all' })}
-              className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-cyber-darker hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 border border-slate-200 dark:border-cyber-border transition-all shadow-xs group"
-              title="Revenir à la vue de toutes les rubriques"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span>Toutes les Rubriques</span>
-            </button>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-[11px] font-mono uppercase font-bold text-blue-600 dark:text-cyber-blueLight">
-                  Rubrique Active
-                </span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  {files.length} document{files.length > 1 ? 's' : ''} disponible{files.length > 1 ? 's' : ''}
-                </span>
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-white dark:bg-cyber-card border border-blue-200 dark:border-blue-500/30 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5">
+              <button
+                onClick={() => onFilterChange({ rubriqueId: 'all', sousRubriqueId: 'all' })}
+                className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-cyber-darker hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 border border-slate-200 dark:border-cyber-border transition-all shadow-xs group"
+                title="Revenir à la vue de toutes les rubriques"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                <span>Toutes les Rubriques</span>
+              </button>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[11px] font-mono uppercase font-bold text-blue-600 dark:text-cyber-blueLight">
+                    Rubrique Active
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {files.length} document{files.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white font-mono">
+                  {selectedRubrique?.name || 'Cours de la rubrique'}
+                </h2>
               </div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white font-mono">
-                {rubriques.find(r => r.id === filters.rubriqueId)?.name || 'Cours de la rubrique'}
-              </h2>
             </div>
+
+            {selectedRubrique?.description && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md hidden md:block">
+                {selectedRubrique.description}
+              </p>
+            )}
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md hidden md:block">
-            {rubriques.find(r => r.id === filters.rubriqueId)?.description}
-          </p>
+          {/* Sub-categories (Sous-rubriques) pills */}
+          {selectedRubrique?.sousRubriques && selectedRubrique.sousRubriques.length > 0 && (
+            <div className="pt-3 border-t border-slate-100 dark:border-cyber-border/40 flex items-center flex-wrap gap-2">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center space-x-1.5 mr-1">
+                <Layers className="w-3.5 h-3.5 text-blue-500" />
+                <span>Sous-rubriques :</span>
+              </span>
+              <button
+                onClick={() => onFilterChange({ sousRubriqueId: 'all' })}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  !filters.sousRubriqueId || filters.sousRubriqueId === 'all'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-cyber-darker text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border'
+                }`}
+              >
+                Toutes ({files.length})
+              </button>
+              {selectedRubrique.sousRubriques.map((sub) => {
+                const isSelected = filters.sousRubriqueId === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => onFilterChange({ sousRubriqueId: sub.id })}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      isSelected
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-cyber-darker text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border'
+                    }`}
+                  >
+                    {sub.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
       
@@ -157,12 +189,12 @@ export const FileList: React.FC<FileListProps> = ({
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300">
             <span className="font-bold text-slate-900 dark:text-white">{files.length}</span>
-            <span>cours et supports trouvés</span>
+            <span>cours et supports disponibles</span>
           </div>
 
           {filters.rubriqueId !== 'all' && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-cyber-blueLight border border-blue-200 dark:border-blue-500/30">
-              Rubrique : {rubriques.find(r => r.id === filters.rubriqueId)?.name || 'Sélectionnée'}
+              Rubrique : {selectedRubrique?.name || 'Sélectionnée'}
             </span>
           )}
         </div>
@@ -212,7 +244,7 @@ export const FileList: React.FC<FileListProps> = ({
               className="bg-transparent text-slate-700 dark:text-slate-200 outline-none cursor-pointer text-xs"
             >
               <option value="newest" className="bg-white dark:bg-cyber-darker text-slate-900 dark:text-white">Plus récents</option>
-              <option value="downloads" className="bg-white dark:bg-cyber-darker text-slate-900 dark:text-white">Plus téléchargés</option>
+              <option value="views" className="bg-white dark:bg-cyber-darker text-slate-900 dark:text-white">Plus consultés</option>
               <option value="title" className="bg-white dark:bg-cyber-darker text-slate-900 dark:text-white">Nom (A-Z)</option>
               <option value="size" className="bg-white dark:bg-cyber-darker text-slate-900 dark:text-white">Taille du fichier</option>
             </select>
@@ -229,6 +261,7 @@ export const FileList: React.FC<FileListProps> = ({
             const fileInfo = getFileIcon(file.originalName, file.mimeType);
             const isRedRub = file.rubriqueColor === 'red';
             const isCyanRub = file.rubriqueColor === 'cyan';
+            const viewCount = file.views ?? file.downloads ?? 0;
 
             return (
               <div
@@ -251,7 +284,7 @@ export const FileList: React.FC<FileListProps> = ({
 
                     {/* Rubrique Tag */}
                     <button
-                      onClick={() => onFilterChange({ rubriqueId: file.rubriqueId })}
+                      onClick={() => onFilterChange({ rubriqueId: file.rubriqueId, sousRubriqueId: 'all' })}
                       className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all truncate max-w-[170px] ${
                         isRedRub
                           ? 'badge-red hover:opacity-80'
@@ -270,11 +303,17 @@ export const FileList: React.FC<FileListProps> = ({
                     {file.title}
                   </h3>
 
-                  {/* Level & Professor Meta */}
+                  {/* Level & Sub-rubrique & Professor Meta */}
                   <div className="flex items-center flex-wrap gap-2 mt-2 text-xs">
                     <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                       {file.level || 'Tous niveaux'}
                     </span>
+                    {file.sousRubriqueName && (
+                      <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-cyber-blueLight font-medium border border-blue-200 dark:border-blue-900/50 flex items-center space-x-1">
+                        <Layers className="w-3 h-3 text-blue-500" />
+                        <span>{file.sousRubriqueName}</span>
+                      </span>
+                    )}
                     {file.professor && (
                       <span className="flex items-center space-x-1 text-slate-500 dark:text-slate-400 truncate max-w-[180px]">
                         <User className="w-3 h-3 text-slate-400" />
@@ -323,31 +362,23 @@ export const FileList: React.FC<FileListProps> = ({
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
                       <span>{formatDate(file.createdAt)}</span>
                     </span>
-                    <span className="inline-flex items-center space-x-1 text-red-600 dark:text-red-400 font-mono font-medium">
-                      <Download className="w-3 h-3" />
-                      <span>{file.downloads || 0}</span>
+                    <span className="inline-flex items-center space-x-1 text-blue-600 dark:text-cyber-blueLight font-mono font-medium" title="Nombre de consultations">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{viewCount} vue{viewCount > 1 ? 's' : ''}</span>
                     </span>
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Action Buttons: Pure Online Reading Mode (No Download) */}
                   <div className="flex items-center space-x-2">
                     
-                    {/* Primary Download Button */}
-                    <button
-                      onClick={() => handleDownload(file.id, file.originalName)}
-                      className="flex-1 inline-flex items-center justify-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-all active:scale-95"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Télécharger</span>
-                    </button>
-
-                    {/* Preview Button */}
+                    {/* Primary Online Reader Button */}
                     <button
                       onClick={() => onPreview(file)}
-                      className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-cyber-darker hover:bg-slate-200 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border transition-all"
-                      title="Aperçu rapide"
+                      className="flex-1 inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xs hover:shadow-md transition-all active:scale-95 group/btn"
                     >
-                      <Eye className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                      <BookOpen className="w-4 h-4 text-white group-hover/btn:scale-110 transition-transform" />
+                      <span>Mode Lecture</span>
+                      <Sparkles className="w-3.5 h-3.5 text-yellow-300 opacity-80" />
                     </button>
 
                     {/* Admin Actions: Edit & Delete */}
@@ -355,14 +386,14 @@ export const FileList: React.FC<FileListProps> = ({
                       <>
                         <button
                           onClick={() => onEdit(file)}
-                          className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-100 dark:bg-cyber-darker hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-cyber-border transition-all"
+                          className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-100 dark:bg-cyber-darker hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-cyber-border transition-all"
                           title="Modifier les informations du cours"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onDelete(file)}
-                          className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-slate-100 dark:bg-cyber-darker hover:bg-red-50 dark:hover:bg-red-950/40 border border-slate-200 dark:border-cyber-border transition-all"
+                          className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 bg-slate-100 dark:bg-cyber-darker hover:bg-red-50 dark:hover:bg-red-950/40 border border-slate-200 dark:border-cyber-border transition-all"
                           title="Supprimer ce fichier"
                         >
                           <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />
@@ -392,18 +423,20 @@ export const FileList: React.FC<FileListProps> = ({
           </p>
           <div className="flex items-center justify-center space-x-3">
             <button
-              onClick={() => onFilterChange({ rubriqueId: 'all', search: '', level: 'all', fileType: 'all' })}
+              onClick={() => onFilterChange({ rubriqueId: 'all', sousRubriqueId: 'all', search: '', level: 'all', fileType: 'all' })}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-cyber-darker border border-slate-200 dark:border-cyber-border hover:bg-slate-200 transition-all"
             >
               Réinitialiser les filtres
             </button>
-            <button
-              onClick={onOpenUpload}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Déposer un fichier</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={onOpenUpload}
+                className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Déposer un fichier</span>
+              </button>
+            )}
           </div>
         </div>
       )}

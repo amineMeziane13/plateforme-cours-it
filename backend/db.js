@@ -325,6 +325,54 @@ class Database {
         if (typeof this.data.dynamicAuth === 'undefined') {
           this.data.dynamicAuth = null;
         }
+
+        // Ensure group leaders and messages collections exist
+        if (!this.data.groupLeaders) {
+          this.data.groupLeaders = [
+            {
+              id: 'lead-1',
+              username: 'delegue_g1',
+              password: 'G1Password2026!',
+              studentName: 'Yacine Benali',
+              groupName: 'Groupe G1 - Licence 3',
+              createdAt: new Date().toISOString()
+            }
+          ];
+        }
+        if (!this.data.messages) {
+          this.data.messages = [];
+        }
+
+        // Ensure sous-rubriques exist on all rubriques
+        if (Array.isArray(this.data.rubriques)) {
+          this.data.rubriques.forEach(r => {
+            if (!r.sousRubriques) {
+              r.sousRubriques = [];
+              if (r.id === 'rub-securite') {
+                r.sousRubriques = [
+                  { id: 'sub-sec-1', name: 'Cryptographie & Protocoles', description: 'Chiffrement symétrique/asymétrique, RSA, AES' },
+                  { id: 'sub-sec-2', name: 'Sécurité Réseaux & Pare-feu', description: 'IPTables, IDS/IPS, VPN, DMZ' },
+                  { id: 'sub-sec-3', name: 'Ethical Hacking & Pentesting', description: 'Audits de sécurité, tests d\'intrusion' }
+                ];
+              } else if (r.id === 'rub-web') {
+                r.sousRubriques = [
+                  { id: 'sub-web-1', name: 'Frontend React & TypeScript', description: 'Composants modernes, Hooks, Tailwind' },
+                  { id: 'sub-web-2', name: 'Backend Node.js & API REST', description: 'Express, JWT, architectures microservices' }
+                ];
+              } else if (r.id === 'rub-reseaux') {
+                r.sousRubriques = [
+                  { id: 'sub-res-1', name: 'Routage & Commutation Cisco', description: 'OSPF, BGP, VLANs, Spanning-Tree' },
+                  { id: 'sub-res-2', name: 'Protocoles TCP/IP & Services', description: 'DNS, DHCP, HTTP/3, Wireshark' }
+                ];
+              } else if (r.id === 'rub-linux') {
+                r.sousRubriques = [
+                  { id: 'sub-lin-1', name: 'Administration Système', description: 'Gestion des utilisateurs, permissions, services systemd' },
+                  { id: 'sub-lin-2', name: 'Scripting Bash & Automatisation', description: 'Scripts avancés, cron jobs, parsing de logs' }
+                ];
+              }
+            }
+          });
+        }
       } catch (err) {
         console.error('Erreur lecture DB, réinitialisation...', err);
         this.seed();
@@ -425,11 +473,15 @@ class Database {
   }
 
   // FILES CRUD
-  getFiles({ rubriqueId, search, level, fileType, sortBy } = {}) {
+  getFiles({ rubriqueId, sousRubriqueId, search, level, fileType, sortBy } = {}) {
     let result = [...this.data.files];
 
     if (rubriqueId && rubriqueId !== 'all') {
       result = result.filter(f => f.rubriqueId === rubriqueId);
+    }
+
+    if (sousRubriqueId && sousRubriqueId !== 'all') {
+      result = result.filter(f => f.sousRubriqueId === sousRubriqueId);
     }
 
     if (level && level !== 'all') {
@@ -460,19 +512,21 @@ class Database {
       });
     }
 
-    // Attach rubrique info
+    // Attach rubrique & sous-rubrique info
     result = result.map(f => {
       const rub = this.data.rubriques.find(r => r.id === f.rubriqueId);
+      const sub = rub?.sousRubriques?.find(s => s.id === f.sousRubriqueId);
       return {
         ...f,
         rubriqueName: rub ? rub.name : 'Non classé',
-        rubriqueColor: rub ? rub.color : 'blue'
+        rubriqueColor: rub ? rub.color : 'blue',
+        sousRubriqueName: sub ? sub.name : undefined
       };
     });
 
     // Sorting
-    if (sortBy === 'downloads') {
-      result.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+    if (sortBy === 'views' || sortBy === 'downloads') {
+      result.sort((a, b) => ((b.views || b.downloads || 0) - (a.views || a.downloads || 0)));
     } else if (sortBy === 'title') {
       result.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === 'size') {
@@ -502,6 +556,7 @@ class Database {
       id,
       title: fileData.title.trim(),
       rubriqueId: fileData.rubriqueId, // Mandatory rubrique!
+      sousRubriqueId: fileData.sousRubriqueId || null,
       description: fileData.description ? fileData.description.trim() : '',
       level: fileData.level || 'Tous niveaux',
       professor: fileData.professor ? fileData.professor.trim() : '',
@@ -511,6 +566,7 @@ class Database {
       mimeType: fileData.mimeType || 'application/octet-stream',
       sizeBytes: fileData.sizeBytes || 0,
       downloads: 0,
+      views: 0,
       createdAt: new Date().toISOString()
     };
 
@@ -537,6 +593,7 @@ class Database {
       ...existing,
       title: updateData.title !== undefined ? updateData.title.trim() : existing.title,
       rubriqueId: updateData.rubriqueId !== undefined ? updateData.rubriqueId : existing.rubriqueId,
+      sousRubriqueId: updateData.sousRubriqueId !== undefined ? updateData.sousRubriqueId : existing.sousRubriqueId,
       description: updateData.description !== undefined ? updateData.description.trim() : existing.description,
       level: updateData.level !== undefined ? updateData.level : existing.level,
       professor: updateData.professor !== undefined ? updateData.professor.trim() : existing.professor,
@@ -571,25 +628,161 @@ class Database {
     return true;
   }
 
-  incrementDownloads(id) {
+  incrementViews(id) {
     const file = this.data.files.find(f => f.id === id);
     if (file) {
-      file.downloads = (file.downloads || 0) + 1;
+      file.views = (file.views || 0) + 1;
       this.save();
-      return file.downloads;
+      return file.views;
     }
     return 0;
+  }
+
+  incrementDownloads(id) {
+    return this.incrementViews(id);
+  }
+
+  // SOUS-RUBRIQUES METHODS
+  addSousRubrique(rubriqueId, subData) {
+    const rub = this.data.rubriques.find(r => r.id === rubriqueId);
+    if (!rub) throw new Error('Rubrique introuvable');
+    if (!rub.sousRubriques) rub.sousRubriques = [];
+
+    const newSub = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      rubriqueId,
+      name: (subData.name || '').trim(),
+      description: subData.description ? subData.description.trim() : ''
+    };
+    rub.sousRubriques.push(newSub);
+    this.save();
+    return newSub;
+  }
+
+  deleteSousRubrique(rubriqueId, subId) {
+    const rub = this.data.rubriques.find(r => r.id === rubriqueId);
+    if (!rub || !rub.sousRubriques) return false;
+    rub.sousRubriques = rub.sousRubriques.filter(s => s.id !== subId);
+    // Unassign from files
+    this.data.files.forEach(f => {
+      if (f.sousRubriqueId === subId) {
+        f.sousRubriqueId = null;
+      }
+    });
+    this.save();
+    return true;
+  }
+
+  // GROUP LEADERS (Responsables de groupe)
+  getGroupLeaders() {
+    return (this.data.groupLeaders || []).map(({ password, ...rest }) => rest);
+  }
+
+  createGroupLeader({ username, password, studentName, groupName }) {
+    if (!username || !password || !groupName) {
+      throw new Error('Identifiant, mot de passe et nom de groupe requis.');
+    }
+    const cleanUser = username.trim().toLowerCase();
+    if (!this.data.groupLeaders) this.data.groupLeaders = [];
+    const exists = this.data.groupLeaders.some(l => l.username.toLowerCase() === cleanUser);
+    if (exists) {
+      throw new Error('Un responsable avec cet identifiant existe déjà.');
+    }
+
+    const newLeader = {
+      id: `lead-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      username: username.trim(),
+      password: password.trim(),
+      studentName: (studentName || 'Responsable de Groupe').trim(),
+      groupName: groupName.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    this.data.groupLeaders.push(newLeader);
+    this.save();
+
+    const { password: _, ...safe } = newLeader;
+    return safe;
+  }
+
+  deleteGroupLeader(id) {
+    if (!this.data.groupLeaders) return false;
+    const initialLen = this.data.groupLeaders.length;
+    this.data.groupLeaders = this.data.groupLeaders.filter(l => l.id !== id);
+    if (this.data.groupLeaders.length !== initialLen) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  verifyGroupLeader(username, password) {
+    if (!this.data.groupLeaders) return null;
+    const cleanUser = (username || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    const found = this.data.groupLeaders.find(
+      l => l.username.toLowerCase() === cleanUser && l.password === cleanPass
+    );
+    if (!found) return null;
+    const { password: _, ...safe } = found;
+    return safe;
+  }
+
+  // MESSAGES (Communication Responsables de groupe -> Admin)
+  getMessages(leaderId = null) {
+    const list = this.data.messages || [];
+    if (leaderId) {
+      return list.filter(m => m.leaderId === leaderId);
+    }
+    return list;
+  }
+
+  createMessage({ leaderId, leaderName, groupName, subject, content }) {
+    if (!subject || !content) {
+      throw new Error('Objet et message obligatoires.');
+    }
+    const newMsg = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      leaderId: leaderId || 'anonymous',
+      leaderName: leaderName || 'Délégué de groupe',
+      groupName: groupName || 'Groupe',
+      subject: subject.trim(),
+      content: content.trim(),
+      reply: null,
+      repliedAt: null,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    if (!this.data.messages) this.data.messages = [];
+    this.data.messages.unshift(newMsg);
+    this.save();
+    return newMsg;
+  }
+
+  replyMessage(id, replyText) {
+    if (!this.data.messages) return null;
+    const msg = this.data.messages.find(m => m.id === id);
+    if (!msg) return null;
+
+    msg.reply = replyText.trim();
+    msg.repliedAt = new Date().toISOString();
+    msg.status = 'replied';
+    this.save();
+    return msg;
   }
 
   getStats() {
     const totalFiles = this.data.files.length;
     const totalRubriques = this.data.rubriques.length;
-    const totalDownloads = this.data.files.reduce((acc, f) => acc + (f.downloads || 0), 0);
+    const totalViews = this.data.files.reduce((acc, f) => acc + (f.views || f.downloads || 0), 0);
     const totalSizeBytes = this.data.files.reduce((acc, f) => acc + (f.sizeBytes || 0), 0);
     return {
       totalFiles,
       totalRubriques,
-      totalDownloads,
+      totalViews,
+      totalDownloads: totalViews,
       totalSizeBytes
     };
   }

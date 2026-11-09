@@ -8,8 +8,10 @@ import { UploadModal } from './components/UploadModal';
 import { EditModal } from './components/EditModal';
 import { DeleteModal } from './components/DeleteModal';
 import { RubriquesManagerModal } from './components/RubriquesManagerModal';
-import { PreviewModal } from './components/PreviewModal';
+import { ReaderModal } from './components/ReaderModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { LeaderPortalModal } from './components/LeaderPortalModal';
+import { LeaderManagerModal } from './components/LeaderManagerModal';
 import { ToastContainer } from './components/ToastContainer';
 import { 
   Rubrique, 
@@ -19,7 +21,7 @@ import {
   ToastNotification 
 } from './types';
 import { api } from './api';
-import { Terminal, Shield, Heart, ExternalLink } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 
 export function App() {
   // State
@@ -53,6 +55,7 @@ export function App() {
   // Filters
   const [filters, setFilters] = useState<FilterState>({
     rubriqueId: 'all',
+    sousRubriqueId: 'all',
     search: '',
     level: 'all',
     fileType: 'all',
@@ -64,8 +67,10 @@ export function App() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isRubriquesManagerOpen, setIsRubriquesManagerOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isReaderOpen, setIsReaderOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isLeaderPortalOpen, setIsLeaderPortalOpen] = useState(false);
+  const [isLeaderManagerOpen, setIsLeaderManagerOpen] = useState(false);
 
   // Selected file for modals
   const [selectedFile, setSelectedFile] = useState<CourseFile | null>(null);
@@ -130,7 +135,7 @@ export function App() {
   };
 
   const handleSelectRubrique = (rubriqueId: string) => {
-    setFilters((prev) => ({ ...prev, rubriqueId }));
+    setFilters((prev) => ({ ...prev, rubriqueId, sousRubriqueId: 'all' }));
   };
 
   const handleOpenEdit = (file: CourseFile) => {
@@ -143,9 +148,9 @@ export function App() {
     setIsDeleteOpen(true);
   };
 
-  const handleOpenPreview = (file: CourseFile) => {
+  const handleOpenReader = (file: CourseFile) => {
     setSelectedFile(file);
-    setIsPreviewOpen(true);
+    setIsReaderOpen(true);
   };
 
   const handleLogout = () => {
@@ -170,6 +175,8 @@ export function App() {
         onToggleTheme={toggleTheme}
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
+        onOpenLeaderPortal={() => setIsLeaderPortalOpen(true)}
+        onOpenLeaderManager={() => setIsLeaderManagerOpen(true)}
         onLoginClick={() => setIsLoginOpen(true)}
         onLogout={handleLogout}
       />
@@ -188,7 +195,7 @@ export function App() {
 
         {/* Dynamic Display:
             1. If filters.rubriqueId === 'all' AND no search:
-               Display large RubriquesGrid (the large icon cards for each category)
+               Display large RubriquesGrid (the large 3D icon cards for each category)
             2. If a rubrique is selected OR user typed a search query:
                Display FileList with the files corresponding to that category / search
         */}
@@ -217,7 +224,7 @@ export function App() {
               filters={filters}
               onFilterChange={handleFilterChange}
               isAdmin={isAdmin}
-              onPreview={handleOpenPreview}
+              onPreview={handleOpenReader}
               onEdit={handleOpenEdit}
               onDelete={handleOpenDelete}
               onOpenUpload={() => setIsUploadOpen(true)}
@@ -227,35 +234,43 @@ export function App() {
 
       </main>
 
-      {/* Modern Clean / Cyber Footer */}
-      <footer className="border-t border-slate-200 dark:border-cyber-border/70 bg-white/80 dark:bg-cyber-darker/80 py-8 px-4 sm:px-6 lg:px-8 mt-16 text-slate-600 dark:text-slate-400">
+      {/* Modern Clean Footer with Author & Copyright */}
+      <footer className="border-t border-slate-200 dark:border-cyber-border/70 bg-white/90 dark:bg-cyber-darker/90 py-8 px-4 sm:px-6 lg:px-8 mt-16 text-slate-600 dark:text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <Terminal className="w-4 h-4 text-blue-600 dark:text-cyber-blueLight" />
-            <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-300">
-              Plateforme Pédagogique IT & Télécoms
-            </span>
-            <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              Système de gestion de documents de cours
-            </span>
+          <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-1 sm:space-y-0 sm:space-x-3 text-center sm:text-left">
+            <div className="flex items-center space-x-2">
+              <Terminal className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+              <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                IT.ACADEMY
+              </span>
+            </div>
+            <span className="text-slate-300 dark:text-slate-600 hidden sm:inline">•</span>
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+              © 2026 — <span className="font-bold text-slate-900 dark:text-white">Dr. M.A. Meziane</span>, Maître de Conférences A en Informatique (ESE ORAN) • Tous droits réservés.
+            </p>
           </div>
 
           <div className="flex items-center space-x-4 text-xs text-slate-500 dark:text-slate-400">
-            <span>Réseaux</span>
-            <span>•</span>
-            <span>Cybersécurité</span>
-            <span>•</span>
-            <span>Développement</span>
-            <span>•</span>
-            <span>Cloud & DevOps</span>
+            <span className="hidden sm:inline">Réseaux</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline">Cybersécurité</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline">Développement</span>
+            <span className="hidden sm:inline">•</span>
+            <span>Cloud & Systèmes</span>
           </div>
 
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+          <div className="text-xs font-mono">
             {isAdmin ? (
-              <span className="text-red-600 dark:text-red-400 font-medium">● Session Administrateur Active</span>
+              <span className="text-purple-600 dark:text-purple-400 font-semibold flex items-center space-x-1.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                <span>Session Enseignant Active</span>
+              </span>
             ) : (
-              <span className="text-blue-600 dark:text-blue-400 font-medium">● Mode Étudiant / Consultation</span>
+              <span className="text-blue-600 dark:text-cyan-400 font-semibold flex items-center space-x-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                <span>Mode Consultation Étudiant</span>
+              </span>
             )}
           </div>
         </div>
@@ -301,12 +316,28 @@ export function App() {
         showToast={showToast}
       />
 
-      <PreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
+      {/* Reading Mode Modal with Anti-Screenshot, Watermark & High Fidelity */}
+      <ReaderModal
+        isOpen={isReaderOpen}
+        onClose={() => setIsReaderOpen(false)}
         file={selectedFile}
       />
 
+      {/* Group Leader Portal (Student delegates communicating with Dr. Meziane) */}
+      <LeaderPortalModal
+        isOpen={isLeaderPortalOpen}
+        onClose={() => setIsLeaderPortalOpen(false)}
+        onToast={showToast}
+      />
+
+      {/* Group Leader Accounts & Messages Manager (Admin) */}
+      <LeaderManagerModal
+        isOpen={isLeaderManagerOpen}
+        onClose={() => setIsLeaderManagerOpen(false)}
+        onToast={showToast}
+      />
+
+      {/* Admin Login Modal */}
       <AdminLoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}

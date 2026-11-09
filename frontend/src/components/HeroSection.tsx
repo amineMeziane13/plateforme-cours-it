@@ -2,11 +2,12 @@ import React from 'react';
 import { 
   FileText, 
   FolderTree, 
-  DownloadCloud, 
+  Eye, 
   HardDrive, 
   Search, 
   X, 
-  Sparkles
+  Sparkles,
+  BookOpen
 } from 'lucide-react';
 import { PlatformStats } from '../types';
 
@@ -46,13 +47,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-cyber-blueLight text-xs font-mono">
             <span className="w-2 h-2 rounded-full bg-blue-500 dark:bg-cyan-400 animate-pulse"></span>
-            <span>PORTAIL OFFICIEL DES COURS & TRAVAUX PRATIQUES IT</span>
+            <span>PORTAIL DES COURS & TRAVAUX PRATIQUES IT</span>
           </div>
 
           {isAdmin && (
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-500/40 text-red-600 dark:text-red-300 text-xs font-mono">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-              <span>Privilèges Administrateur Actifs</span>
+              <span>Privilèges Enseignant / Administrateur</span>
             </div>
           )}
         </div>
@@ -61,12 +62,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="max-w-3xl mb-8">
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight font-sans">
             Centre de Ressources{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-cyan-500 to-red-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-600 bg-clip-text text-transparent">
               Informatiques & Télécoms
             </span>
           </h1>
-          <p className="mt-3 text-base sm:text-lg text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
-            Consultez, téléchargez et déposez l'ensemble des cours magistraux, travaux dirigés, travaux pratiques et archives de code pour vos modules de formation.
+          <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
+            Consultez directement en ligne vos cours magistraux, travaux dirigés et supports de travaux pratiques avec l'interface de lecture haute fidélité optimisée.
           </p>
         </div>
 
@@ -80,7 +81,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               type="text"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Rechercher un cours (ex: Réseaux, Docker, Python, L3, M1)..."
+              placeholder="Rechercher un cours (ex: Réseaux, Docker, Sécurité, L3, M1)..."
               className="w-full pl-11 pr-10 py-3.5 bg-white dark:bg-cyber-card/90 border border-slate-300 dark:border-cyber-border focus:border-blue-500 dark:focus:border-cyber-blueLight focus:ring-2 focus:ring-blue-500/20 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-sm transition-all shadow-sm outline-none"
             />
             {search && (
@@ -100,7 +101,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Card 1: Fichiers & Documents */}
           <div className="bg-white dark:bg-cyber-card rounded-xl p-4 border border-slate-200 dark:border-cyber-border hover:border-blue-400 dark:hover:border-blue-500/40 transition-all cyber-card shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Fichiers</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Documents</span>
               <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <FileText className="w-4 h-4" />
               </div>
@@ -109,7 +110,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
                 {stats ? stats.totalFiles : '...'}
               </span>
-              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">supports</span>
+              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">cours</span>
             </div>
           </div>
 
@@ -129,26 +130,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
           </div>
 
-          {/* Card 3: Téléchargements (Red accent) */}
-          <div className="bg-white dark:bg-cyber-card rounded-xl p-4 border border-slate-200 dark:border-cyber-border hover:border-red-400 dark:hover:border-red-500/40 transition-all cyber-card shadow-xs">
+          {/* Card 3: Consultations en ligne */}
+          <div className="bg-white dark:bg-cyber-card rounded-xl p-4 border border-slate-200 dark:border-cyber-border hover:border-emerald-400 dark:hover:border-emerald-500/40 transition-all cyber-card shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Téléchargements</span>
-              <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400">
-                <DownloadCloud className="w-4 h-4" />
+              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Lectures en ligne</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Eye className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline space-x-2">
               <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-                {stats ? stats.totalDownloads : '...'}
+                {stats ? (stats.totalViews ?? stats.totalDownloads ?? 0) : '...'}
               </span>
-              <span className="text-xs text-red-600 dark:text-red-400 font-medium">réalisés</span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">consultations</span>
             </div>
           </div>
 
           {/* Card 4: Volume Stocké */}
           <div className="bg-white dark:bg-cyber-card rounded-xl p-4 border border-slate-200 dark:border-cyber-border hover:border-indigo-400 dark:hover:border-blue-500/40 transition-all cyber-card shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Volume Stocké</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Volume Pédagogique</span>
               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                 <HardDrive className="w-4 h-4" />
               </div>
