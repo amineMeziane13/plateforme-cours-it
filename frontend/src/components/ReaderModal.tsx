@@ -17,7 +17,11 @@ import {
   AlertTriangle,
   Fingerprint,
   Smartphone,
-  Sparkles
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Scan,
+  Shield
 } from 'lucide-react';
 import { CourseFile } from '../types';
 
@@ -45,10 +49,13 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   const [isWindowBlurred, setIsWindowBlurred] = useState(false);
   const [screenshotWarning, setScreenshotWarning] = useState(false);
 
-  // Mobile Anti-Capture "Touch-to-Reveal / Hold-to-Read" state
+  // Mobile Anti-Capture Spotlight / Viseur Sécurisé
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [touchToRead, setTouchToRead] = useState(true);
-  const [isTouching, setIsTouching] = useState(false);
+  const [activeMode, setActiveMode] = useState<'spotlight' | 'standard'>('spotlight');
+  const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
+  const BLOCK_SIZE = 7; // Number of lines visible at once in spotlight mode
+
+  // Live second-by-second timestamp
   const [realTime, setRealTime] = useState('');
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,16 +65,20 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(
-          'DOCUMENT PROTÉGÉ — DR. M.A. MEZIANE (ESE ORAN) — COPIE ET CAPTURE INTERDITES'
+          'DOCUMENT PROTÉGÉ — DR. M.A. MEZIANE (ESE ORAN) — COPIE ET CAPTURE STRICTEMENT INTERDITES'
         ).catch(() => {});
       }
     } catch (_) {}
   };
 
-  // Detect touch-capable devices (smartphones, tablets)
+  // Detect touch-capable devices on mount (smartphones and tablets)
   useEffect(() => {
-    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || window.innerWidth < 768;
     setIsTouchDevice(isTouch);
+    // On mobile, default to spotlight mode to make full screenshot impossible
+    if (isTouch) {
+      setActiveMode('spotlight');
+    }
   }, []);
 
   // Live second-by-second forensic watermark timestamp
@@ -93,14 +104,14 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       setLoading(true);
       setIsWindowBlurred(false);
       setScreenshotWarning(false);
-      setIsTouching(false);
+      setCurrentBlockIndex(0);
       return;
     }
 
     setLoading(true);
     setError(null);
     setIsWindowBlurred(false);
-    setIsTouching(false);
+    setCurrentBlockIndex(0);
 
     // Call server with ?format=json to inspect true content on disk
     fetch(`/api/files/${file.id}/preview?format=json`, {
@@ -135,7 +146,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       });
   }, [isOpen, file]);
 
-  // Comprehensive Anti-Screenshot and Anti-Capture Security System
+  // Comprehensive Anti-Screenshot and Anti-Capture Security Listeners
   useEffect(() => {
     if (!isOpen) return;
 
@@ -168,7 +179,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       setIsWindowBlurred(false);
     };
 
-    // 4. Multi-finger touch interception (prevents 3-finger swipe screenshot on Android / iOS)
+    // 4. Multi-finger touch interception (prevents multi-finger screenshot gestures)
     const handleTouchStartGlobal = (e: TouchEvent) => {
       if (e.touches.length > 1) {
         setIsWindowBlurred(true);
@@ -249,33 +260,15 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     }
   };
 
-  // Mobile Touch-and-Hold handlers
-  const handleReaderTouchStart = (e: React.TouchEvent) => {
-    if (!touchToRead) return;
-    if (e.touches.length > 1) {
-      setIsTouching(false);
-      setIsWindowBlurred(true);
-      setScreenshotWarning(true);
-      wipeClipboard();
-      return;
-    }
-    setIsTouching(true);
-    setIsWindowBlurred(false);
-  };
-
-  const handleReaderTouchEnd = () => {
-    if (!touchToRead) return;
-    setIsTouching(false);
-    wipeClipboard();
-  };
-
-  const handleReaderTouchCancel = () => {
-    if (!touchToRead) return;
-    setIsTouching(false);
-    wipeClipboard();
-  };
-
   if (!isOpen || !file) return null;
+
+  // Split lines for text content
+  const allLines = content ? content.split('\n') : [];
+  const totalBlocks = Math.max(1, Math.ceil(allLines.length / BLOCK_SIZE));
+  const visibleLines = activeMode === 'spotlight' 
+    ? allLines.slice(currentBlockIndex * BLOCK_SIZE, (currentBlockIndex + 1) * BLOCK_SIZE)
+    : allLines;
+  const startLineNumber = activeMode === 'spotlight' ? currentBlockIndex * BLOCK_SIZE + 1 : 1;
 
   // Theme-dependent styles
   const themeClasses = {
@@ -290,12 +283,9 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
     year: 'numeric'
   });
 
-  // Determine if document should be hidden on phone (when touch-to-read is enabled and user is NOT touching)
-  const isMobileMasked = isTouchDevice && touchToRead && !isTouching;
-
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in select-none"
       onContextMenu={(e) => e.preventDefault()}
       style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
     >
@@ -311,7 +301,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
 
       <div 
         ref={containerRef}
-        className={`reader-modal-shield relative w-full max-w-6xl h-[94vh] rounded-2xl flex flex-col shadow-2xl border overflow-hidden transition-colors ${themeClasses}`}
+        className={`reader-modal-shield relative w-full max-w-6xl h-[96vh] sm:h-[94vh] rounded-2xl flex flex-col shadow-2xl border overflow-hidden transition-colors ${themeClasses}`}
         style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
       >
         
@@ -326,7 +316,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center space-x-1.5 sm:space-x-2">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400">
-                  Mode Protégé
+                  Mode Protégé Anti-Capture
                 </span>
                 <span className="text-xs opacity-40">•</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center space-x-1">
@@ -334,7 +324,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                   <span>Bouclier Actif</span>
                 </span>
               </div>
-              <h2 className="text-xs sm:text-sm font-bold truncate max-w-[200px] sm:max-w-md lg:max-w-xl">
+              <h2 className="text-xs sm:text-sm font-bold truncate max-w-[180px] sm:max-w-md lg:max-w-xl">
                 {file.title}
               </h2>
             </div>
@@ -343,42 +333,19 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           {/* Reader Action Controls */}
           <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs">
             
-            {/* Mobile Touch-Hold Security Toggle Button */}
-            {isTouchDevice && (
-              <button
-                onClick={() => setTouchToRead(prev => !prev)}
-                className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                  touchToRead 
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
-                    : 'bg-black/5 dark:bg-white/10 border-inherit text-slate-600 dark:text-slate-300'
-                }`}
-                title="Activer/Désactiver le maintien tactile anti-capture pour smartphone"
-              >
-                <Fingerprint className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Anti-Capture Tactile</span>
-              </button>
-            )}
-
-            {/* Font Size Adjusters (for text documents) */}
-            {fileType === 'text' && (
-              <div className="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
-                <button 
-                  onClick={() => setFontSize(prev => Math.max(12, prev - 1))}
-                  className="px-1.5 py-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 font-bold font-mono"
-                  title="Diminuer la police"
-                >
-                  A-
-                </button>
-                <span className="text-[10px] font-mono opacity-70 w-5 text-center">{fontSize}</span>
-                <button 
-                  onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
-                  className="px-1.5 py-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 font-bold font-mono"
-                  title="Augmenter la police"
-                >
-                  A+
-                </button>
-              </div>
-            )}
+            {/* Spotlight / Viseur Mode Toggle */}
+            <button
+              onClick={() => setActiveMode(prev => prev === 'spotlight' ? 'standard' : 'spotlight')}
+              className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                activeMode === 'spotlight' 
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-xs' 
+                  : 'bg-black/5 dark:bg-white/10 border-inherit text-slate-600 dark:text-slate-300'
+              }`}
+              title="Activer/Désactiver le Viseur Sécurisé Anti-Capture (affiche par section pour empêcher la capture intégrale du cours)"
+            >
+              <Scan className="w-3.5 h-3.5" />
+              <span>{activeMode === 'spotlight' ? 'Viseur Anti-Capture' : 'Vue Déroulante'}</span>
+            </button>
 
             {/* Visual Themes Switcher */}
             <div className="flex items-center space-x-1 px-1.5 py-1 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
@@ -402,32 +369,6 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 title="Thème Sombre"
               >
                 <Moon className="w-3.5 h-3.5 text-blue-400" />
-              </button>
-            </div>
-
-            {/* Zoom Controls */}
-            <div className="hidden md:flex items-center space-x-1 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
-              <button 
-                onClick={() => setZoom(prev => Math.max(60, prev - 15))}
-                className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10"
-                title="Dézoomer"
-              >
-                <ZoomOut className="w-3.5 h-3.5" />
-              </button>
-              <span className="font-mono text-[11px] w-9 text-center">{zoom}%</span>
-              <button 
-                onClick={() => setZoom(prev => Math.min(180, prev + 15))}
-                className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10"
-                title="Zoomer"
-              >
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-              <button 
-                onClick={() => setZoom(100)}
-                className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 ml-0.5"
-                title="Réinitialiser zoom"
-              >
-                <RotateCcw className="w-3 h-3 opacity-70" />
               </button>
             </div>
 
@@ -460,23 +401,18 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           </div>
         )}
 
-        {/* Reading Content Area with Watermark Layer and Touch-and-Hold Listener */}
-        <div 
-          className="relative flex-1 overflow-auto p-4 sm:p-8 select-none"
-          onTouchStart={handleReaderTouchStart}
-          onTouchEnd={handleReaderTouchEnd}
-          onTouchCancel={handleReaderTouchCancel}
-        >
+        {/* Reading Content Area with Watermark Layer */}
+        <div className="relative flex-1 overflow-auto p-3 sm:p-8 select-none flex flex-col justify-between">
           
-          {/* SEMI-TRANSPARENT DYNAMIC WATERMARK OVERLAY WITH REAL-TIME CLOCK */}
+          {/* HIGH-DENSITY DYNAMIC FORENSIC WATERMARK OVERLAY WITH REAL-TIME CLOCK */}
           <div 
-            className="pointer-events-none absolute inset-0 z-10 flex flex-wrap items-center justify-around opacity-[0.09] dark:opacity-[0.08] overflow-hidden select-none"
+            className="pointer-events-none absolute inset-0 z-10 flex flex-wrap items-center justify-around opacity-[0.11] dark:opacity-[0.10] overflow-hidden select-none"
             aria-hidden="true"
           >
-            {Array.from({ length: 24 }).map((_, i) => (
+            {Array.from({ length: 30 }).map((_, i) => (
               <div 
                 key={i} 
-                className="text-xs sm:text-sm font-black uppercase font-mono tracking-widest rotate-[-30deg] p-6 whitespace-nowrap text-red-600 dark:text-cyan-400 select-none"
+                className="text-xs sm:text-sm font-black uppercase font-mono tracking-widest rotate-[-30deg] p-5 whitespace-nowrap text-red-600 dark:text-cyan-400 select-none"
               >
                 DR. M.A. MEZIANE • ESE ORAN • COPIE INTERDITE • {currentDate} {realTime}
               </div>
@@ -487,7 +423,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           {isWindowBlurred && (
             <div 
               onClick={() => setIsWindowBlurred(false)}
-              className="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-2xl flex flex-col items-center justify-center text-center p-6 text-white cursor-pointer select-none"
+              className="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-center text-center p-6 text-white cursor-pointer select-none"
             >
               <div className="p-4 rounded-full bg-red-600/20 border border-red-500/50 mb-4 animate-pulse">
                 <EyeOff className="w-10 h-10 text-red-400" />
@@ -507,36 +443,14 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
             </div>
           )}
 
-          {/* Mobile "Hold-to-Read" Anti-Screenshot Veil (Specific for Phones & Tablets) */}
-          {isMobileMasked && !isWindowBlurred && (
-            <div 
-              onTouchStart={handleReaderTouchStart}
-              className="absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-2xl flex flex-col items-center justify-center text-center p-6 text-white select-none cursor-pointer"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 mb-3 animate-pulse">
-                <Fingerprint className="w-9 h-9" />
-              </div>
-              <h3 className="text-sm font-bold font-mono text-white mb-1.5 uppercase tracking-wide">
-                Protection Anti-Capture Mobile Active
-              </h3>
-              <p className="text-xs text-slate-300 max-w-xs leading-relaxed mb-4">
-                Maintenez votre doigt sur l'écran pour lire ce cours. Dès que vous retirez le doigt (ex: pour presser les boutons de capture du téléphone), le document redevient instantanément noir.
-              </p>
-              <div className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg animate-bounce">
-                <Sparkles className="w-4 h-4 text-yellow-300" />
-                <span>Posez et maintenez votre doigt ici pour lire</span>
-              </div>
-            </div>
-          )}
-
-          {/* Document Content Display */}
+          {/* Main Reading Container */}
           <div 
             style={{ 
               transform: `scale(${zoom / 100})`, 
               transformOrigin: 'top center',
               transition: 'transform 0.15s ease-out'
             }}
-            className="w-full flex justify-center select-none"
+            className="w-full flex-1 flex flex-col items-center justify-center select-none"
           >
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-3">
@@ -550,8 +464,18 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 <div>{error}</div>
               </div>
             ) : fileType === 'pdf' ? (
-              /* PDF Embedded Viewer with strict sandbox & disabled toolbars */
-              <div className="w-full h-[76vh] rounded-xl overflow-hidden shadow-lg border border-inherit bg-slate-100 dark:bg-slate-900 relative">
+              /* PDF Viewer with Aperture Slit Protection on mobile */
+              <div className="w-full max-w-4xl h-[72vh] rounded-xl overflow-hidden shadow-lg border border-inherit bg-slate-100 dark:bg-slate-900 relative">
+                {activeMode === 'spotlight' && (
+                  <>
+                    <div className="absolute top-0 inset-x-0 h-1/4 bg-slate-950/90 backdrop-blur-xl z-20 flex items-center justify-center text-[11px] font-mono font-bold text-slate-400 border-b border-white/10 pointer-events-none">
+                      🛡️ ZONE SUPÉRIEURE PROTÉGÉE — DR. M.A. MEZIANE (ESE ORAN)
+                    </div>
+                    <div className="absolute bottom-0 inset-x-0 h-1/4 bg-slate-950/90 backdrop-blur-xl z-20 flex items-center justify-center text-[11px] font-mono font-bold text-slate-400 border-t border-white/10 pointer-events-none">
+                      🛡️ ZONE INFÉRIEURE PROTÉGÉE — DR. M.A. MEZIANE (ESE ORAN)
+                    </div>
+                  </>
+                )}
                 <iframe
                   src={`${content}#toolbar=0&navpanes=0&scrollbar=1&statusbar=0&messages=0`}
                   className="w-full h-full border-none pointer-events-auto"
@@ -560,7 +484,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               </div>
             ) : fileType === 'image' ? (
               /* Image Viewer with disabled drag and context menu */
-              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-lg border border-inherit">
+              <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-lg border border-inherit relative">
                 <img 
                   src={content || ''} 
                   alt={file.title}
@@ -569,33 +493,110 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 />
               </div>
             ) : (
-              /* High-Quality Protected Code / Script / Text Reader */
-              <div 
-                className="w-full max-w-4xl rounded-2xl p-4 sm:p-8 font-mono shadow-sm border border-inherit overflow-x-auto leading-relaxed select-none"
-                style={{ fontSize: `${fontSize}px`, userSelect: 'none', WebkitUserSelect: 'none' }}
-              >
-                <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 border-b border-inherit text-xs opacity-75 font-sans">
-                  <span>Support de cours : <strong>{file.title}</strong></span>
-                  <span>{content ? content.split('\n').length : 0} lignes</span>
+              /* High-Security Text / Code Reader with Spotlight Aperture */
+              <div className="w-full max-w-3xl flex flex-col select-none">
+                
+                {/* Meta Header */}
+                <div className="flex items-center justify-between pb-2 mb-3 border-b border-inherit text-xs opacity-75 font-sans">
+                  <span>Support : <strong>{file.title}</strong></span>
+                  <span className="font-mono text-[11px]">
+                    {activeMode === 'spotlight' 
+                      ? `Section ${currentBlockIndex + 1} sur ${totalBlocks} (${allLines.length} lignes)`
+                      : `${allLines.length} lignes`
+                    }
+                  </span>
                 </div>
 
-                <pre className="overflow-x-auto whitespace-pre-wrap font-mono select-none">
-                  {content ? (
-                    content.split('\n').map((line, idx) => (
-                      <div key={idx} className="flex space-x-3 sm:space-x-4 hover:bg-black/5 dark:hover:bg-white/5 px-1 sm:px-2 rounded">
-                        <span className="w-6 sm:w-8 text-right opacity-30 select-none text-[10px] sm:text-[11px] font-mono flex-shrink-0">
-                          {idx + 1}
-                        </span>
-                        <span className="flex-1 font-mono text-xs sm:text-sm">{line || ' '}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <span className="opacity-50">Document vide ou inaccessible.</span>
-                  )}
-                </pre>
+                {/* If Spotlight Mode Active: Top Masking Shield */}
+                {activeMode === 'spotlight' && currentBlockIndex > 0 && (
+                  <div className="w-full py-2.5 px-4 mb-3 rounded-xl bg-slate-900/80 text-slate-400 border border-slate-700/60 text-[11px] font-mono flex items-center justify-between shadow-xs select-none">
+                    <span className="flex items-center space-x-1.5">
+                      <Lock className="w-3.5 h-3.5 text-blue-400" />
+                      <span>{currentBlockIndex * BLOCK_SIZE} lignes précédentes masquées (Anti-Capture)</span>
+                    </span>
+                    <button
+                      onClick={() => setCurrentBlockIndex(prev => Math.max(0, prev - 1))}
+                      className="px-2 py-0.5 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 text-[10px]"
+                    >
+                      ▲ Précédent
+                    </button>
+                  </div>
+                )}
+
+                {/* Visible Lines Container (Sharp & Crystal Clear) */}
+                <div 
+                  className={`w-full rounded-2xl p-4 sm:p-6 font-mono shadow-sm border border-inherit overflow-x-auto leading-relaxed select-none ${
+                    activeMode === 'spotlight' ? 'ring-2 ring-blue-500/30' : ''
+                  }`}
+                  style={{ fontSize: `${fontSize}px`, userSelect: 'none', WebkitUserSelect: 'none' }}
+                >
+                  <pre className="overflow-x-auto whitespace-pre-wrap font-mono select-none">
+                    {visibleLines.length > 0 ? (
+                      visibleLines.map((line, idx) => {
+                        const lineNum = startLineNumber + idx;
+                        return (
+                          <div key={idx} className="flex space-x-3 sm:space-x-4 hover:bg-black/5 dark:hover:bg-white/5 px-1 sm:px-2 py-0.5 rounded">
+                            <span className="w-6 sm:w-8 text-right opacity-30 select-none text-[10px] sm:text-[11px] font-mono flex-shrink-0">
+                              {lineNum}
+                            </span>
+                            <span className="flex-1 font-mono text-xs sm:text-sm">{line || ' '}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <span className="opacity-50">Document vide ou inaccessible.</span>
+                    )}
+                  </pre>
+                </div>
+
+                {/* If Spotlight Mode Active: Bottom Masking Shield */}
+                {activeMode === 'spotlight' && currentBlockIndex < totalBlocks - 1 && (
+                  <div className="w-full py-2.5 px-4 mt-3 rounded-xl bg-slate-900/80 text-slate-400 border border-slate-700/60 text-[11px] font-mono flex items-center justify-between shadow-xs select-none">
+                    <span className="flex items-center space-x-1.5">
+                      <Lock className="w-3.5 h-3.5 text-blue-400" />
+                      <span>{allLines.length - (currentBlockIndex + 1) * BLOCK_SIZE} lignes suivantes masquées (Anti-Capture)</span>
+                    </span>
+                    <button
+                      onClick={() => setCurrentBlockIndex(prev => Math.min(totalBlocks - 1, prev + 1))}
+                      className="px-2 py-0.5 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 text-[10px]"
+                    >
+                      ▼ Suivant
+                    </button>
+                  </div>
+                )}
+
               </div>
             )}
           </div>
+
+          {/* Floating Navigation Controls (for Spotlight Mode) */}
+          {activeMode === 'spotlight' && fileType === 'text' && (
+            <div className="mt-4 pt-3 border-t border-inherit flex items-center justify-between text-xs font-mono">
+              <button
+                onClick={() => setCurrentBlockIndex(prev => Math.max(0, prev - 1))}
+                disabled={currentBlockIndex === 0}
+                className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold disabled:opacity-30 disabled:pointer-events-none hover:bg-blue-700 transition-all shadow-xs"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Précédent</span>
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-bold">
+                  Section {currentBlockIndex + 1} / {totalBlocks}
+                </span>
+              </div>
+
+              <button
+                onClick={() => setCurrentBlockIndex(prev => Math.min(totalBlocks - 1, prev + 1))}
+                disabled={currentBlockIndex >= totalBlocks - 1}
+                className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold disabled:opacity-30 disabled:pointer-events-none hover:bg-blue-700 transition-all shadow-xs"
+              >
+                <span>Suivant</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
         </div>
 
@@ -603,7 +604,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
         <footer className="px-4 sm:px-6 py-2 sm:py-2.5 border-t border-inherit text-[10px] sm:text-[11px] opacity-75 flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-2 bg-black/5 dark:bg-white/5 font-mono">
           <div className="flex items-center space-x-2">
             <Lock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-            <span className="truncate">Mode Lecture Sécurisée • Téléchargement & Capture désactivés</span>
+            <span className="truncate">Viseur Sécurisé • Capture intégrale neutralisée sur mobile et PC</span>
           </div>
           <div className="truncate">
             © {new Date().getFullYear()} — Dr. M.A. Meziane (ESE ORAN)
