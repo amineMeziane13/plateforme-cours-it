@@ -119,10 +119,22 @@ export function App() {
     }
   }, [filters, showToast]);
 
-  // Initial Load
+  // Initial Load & Visitor Ping
   useEffect(() => {
     loadRubriques();
     loadStats();
+
+    // Session identification for unique visitor counter
+    let sid = localStorage.getItem('it_visitor_session_id');
+    if (!sid) {
+      sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('it_visitor_session_id', sid);
+    }
+    api.pingVisitor(sid).then((res) => {
+      if (res && res.count) {
+        setStats((prev) => prev ? { ...prev, visitorCount: res.count } : null);
+      }
+    });
   }, [loadRubriques, loadStats]);
 
   useEffect(() => {

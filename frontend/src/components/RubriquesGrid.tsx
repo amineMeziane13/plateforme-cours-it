@@ -102,6 +102,28 @@ export const RubriquesGrid: React.FC<RubriquesGridProps> = ({
       );
     }
 
+    if (id.includes('algo') || iconName === 'Cpu') {
+      return (
+        <div className="relative w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500 via-indigo-600 to-violet-800 shadow-[0_12px_24px_-4px_rgba(139,92,246,0.45),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-3px_6px_rgba(0,0,0,0.35)] group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300">
+          <div className="absolute inset-1.5 rounded-2xl bg-gradient-to-tr from-violet-600/60 to-purple-400/30 backdrop-blur-xs flex items-center justify-center">
+            <Cpu className="w-8 h-8 text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-violet-300/80 blur-xs" />
+        </div>
+      );
+    }
+
+    if (id.includes('ia') || iconName === 'Sparkles') {
+      return (
+        <div className="relative w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center rounded-3xl bg-gradient-to-br from-fuchsia-500 via-rose-600 to-pink-800 shadow-[0_12px_24px_-4px_rgba(217,70,239,0.45),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-3px_6px_rgba(0,0,0,0.35)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+          <div className="absolute inset-1.5 rounded-2xl bg-gradient-to-tr from-fuchsia-600/60 to-pink-400/30 backdrop-blur-xs flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-pink-300/80 blur-xs" />
+        </div>
+      );
+    }
+
     // Default 3D Medallion
     return (
       <div className="relative w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-800 shadow-[0_12px_24px_-4px_rgba(37,99,235,0.45),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-3px_6px_rgba(0,0,0,0.35)] group-hover:scale-110 transition-all duration-300">

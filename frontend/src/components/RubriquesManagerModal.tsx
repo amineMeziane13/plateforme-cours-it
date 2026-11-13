@@ -8,7 +8,9 @@ import {
   ChevronDown,
   ChevronRight,
   FolderPlus,
-  CornerDownRight
+  CornerDownRight,
+  Edit3,
+  Check
 } from 'lucide-react';
 import { Rubrique } from '../types';
 import * as api from '../api';
@@ -37,6 +39,13 @@ export const RubriquesManagerModal: React.FC<RubriquesManagerModalProps> = ({
   const [icon, setIcon] = useState('Folder');
   const [color, setColor] = useState<'blue' | 'red' | 'cyan'>('blue');
   const [badge, setBadge] = useState('IT');
+
+  // Edit rubrique form state
+  const [editingRubriqueId, setEditingRubriqueId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editColor, setEditColor] = useState<'blue' | 'red' | 'cyan'>('blue');
+  const [editBadge, setEditBadge] = useState('IT');
 
   // New sous-rubrique form state
   const [addingSubForRubriqueId, setAddingSubForRubriqueId] = useState<string | null>(null);
@@ -68,6 +77,36 @@ export const RubriquesManagerModal: React.FC<RubriquesManagerModalProps> = ({
       onRefresh();
     } catch (err: any) {
       showToast('error', 'Erreur', err.message);
+    }
+  };
+
+  const startEditRubrique = (rub: Rubrique) => {
+    setEditingRubriqueId(rub.id);
+    setEditName(rub.name);
+    setEditDescription(rub.description || '');
+    setEditColor((rub.color as any) || 'blue');
+    setEditBadge(rub.badge || 'IT');
+  };
+
+  const handleUpdateRubrique = async (e: React.FormEvent, id: string) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      showToast('error', 'Nom requis', 'Le nom de la rubrique est obligatoire.');
+      return;
+    }
+
+    try {
+      await api.updateRubrique(id, {
+        name: editName.trim(),
+        description: editDescription.trim(),
+        color: editColor,
+        badge: editBadge.trim()
+      });
+      showToast('success', 'Rubrique mise à jour', `La rubrique "${editName}" a été enregistrée dans la base de données.`);
+      setEditingRubriqueId(null);
+      onRefresh();
+    } catch (err: any) {
+      showToast('error', 'Erreur de modification', err.message || 'Impossible de mettre à jour la rubrique.');
     }
   };
 
@@ -299,6 +338,14 @@ export const RubriquesManagerModal: React.FC<RubriquesManagerModalProps> = ({
 
                     <div className="flex items-center space-x-1 pl-2">
                       <button
+                        onClick={() => startEditRubrique(rub)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-cyan-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all text-xs"
+                        title="Modifier cette rubrique"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
                         onClick={() => {
                           setExpandedRubriqueId(rub.id);
                           setAddingSubForRubriqueId(rub.id);
@@ -318,6 +365,99 @@ export const RubriquesManagerModal: React.FC<RubriquesManagerModalProps> = ({
                       </button>
                     </div>
                   </div>
+
+                  {/* Inline Edit Rubrique Form */}
+                  {editingRubriqueId === rub.id && (
+                    <form 
+                      onSubmit={(e) => handleUpdateRubrique(e, rub.id)} 
+                      className="p-4 bg-blue-50/70 dark:bg-blue-950/40 border-t border-b border-blue-200 dark:border-blue-900/60 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-blue-700 dark:text-cyan-400 font-mono uppercase">
+                          Modifier la rubrique : {rub.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingRubriqueId(null)}
+                          className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                        >
+                          Fermer
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-mono uppercase text-slate-600 dark:text-slate-300 mb-1">
+                            Nom de la rubrique *
+                          </label>
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            required
+                            className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border text-xs outline-none focus:border-blue-500 text-slate-900 dark:text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-mono uppercase text-slate-600 dark:text-slate-300 mb-1">
+                            Badge
+                          </label>
+                          <input
+                            type="text"
+                            value={editBadge}
+                            onChange={(e) => setEditBadge(e.target.value)}
+                            placeholder="Ex: IT / Avancé"
+                            className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border text-xs outline-none focus:border-blue-500 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-mono uppercase text-slate-600 dark:text-slate-300 mb-1">
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border text-xs outline-none focus:border-blue-500 text-slate-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center space-x-2">
+                          <label className="text-[10px] font-mono uppercase text-slate-600 dark:text-slate-300">Couleur :</label>
+                          <select
+                            value={editColor}
+                            onChange={(e) => setEditColor(e.target.value as any)}
+                            className="px-2 py-1 rounded bg-white dark:bg-cyber-darker border border-slate-300 dark:border-cyber-border text-xs outline-none text-slate-900 dark:text-white"
+                          >
+                            <option value="blue">Bleu Électrique</option>
+                            <option value="red">Rouge Crimson (Accent)</option>
+                            <option value="cyan">Cyan Néon</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingRubriqueId(null)}
+                            className="px-3 py-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            type="submit"
+                            className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Enregistrer dans la base</span>
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  )}
 
                   {/* Expanded Sub-rubriques List */}
                   {isExpanded && (

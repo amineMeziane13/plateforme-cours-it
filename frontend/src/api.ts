@@ -16,6 +16,32 @@ export async function getStats(): Promise<PlatformStats> {
   return res.json();
 }
 
+// Visitors
+export async function pingVisitor(sessionId: string): Promise<{ count: number; isNew: boolean }> {
+  try {
+    const res = await fetch(`${API_BASE}/visitors/ping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    });
+    if (!res.ok) return { count: 0, isNew: false };
+    return res.json();
+  } catch {
+    return { count: 0, isNew: false };
+  }
+}
+
+export async function getVisitorCount(): Promise<number> {
+  try {
+    const res = await fetch(`${API_BASE}/visitors/count`);
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.count || 0;
+  } catch {
+    return 0;
+  }
+}
+
 // Rubriques
 export async function getRubriques(): Promise<Rubrique[]> {
   const res = await fetch(`${API_BASE}/rubriques`);
@@ -279,7 +305,9 @@ export const api = {
   getDownloadUrl,
   previewFile,
   requestDynamicCredentials,
-  loginAdmin
+  loginAdmin,
+  pingVisitor,
+  getVisitorCount
 };
 
 export default api;

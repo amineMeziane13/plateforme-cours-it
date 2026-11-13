@@ -20,7 +20,8 @@ import {
   BookOpen,
   Sparkles,
   ShieldCheck,
-  Lock
+  Lock,
+  Download
 } from 'lucide-react';
 import { CourseFile, FilterState, Rubrique } from '../types';
 
@@ -47,39 +48,59 @@ export const FileList: React.FC<FileListProps> = ({
   onDelete,
   onOpenUpload
 }) => {
-  // File type icon & color helper
+  // File type 3D icon & badge helper
   const getFileIcon = (originalName: string, mimeType: string) => {
     const ext = originalName.split('.').pop()?.toLowerCase() || '';
     if (ext === 'pdf' || mimeType.includes('pdf')) {
       return {
-        icon: <FileText className="w-5 h-5 text-red-500 dark:text-red-400" />,
+        icon: (
+          <div className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-[0_6px_12px_-2px_rgba(239,68,68,0.4),inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.3)]">
+            <FileText className="w-5 h-5 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />
+          </div>
+        ),
         bg: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30',
         label: 'PDF'
       };
     }
     if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
       return {
-        icon: <FileArchive className="w-5 h-5 text-amber-500 dark:text-amber-400" />,
+        icon: (
+          <div className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-orange-600 to-amber-800 shadow-[0_6px_12px_-2px_rgba(245,158,11,0.4),inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.3)]">
+            <FileArchive className="w-5 h-5 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />
+          </div>
+        ),
         bg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30',
         label: ext.toUpperCase()
       };
     }
     if (['js', 'ts', 'jsx', 'tsx', 'py', 'sh', 'c', 'cpp', 'java', 'sql', 'html', 'css', 'json'].includes(ext)) {
       return {
-        icon: <FileCode className="w-5 h-5 text-blue-500 dark:text-blue-400" />,
+        icon: (
+          <div className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-600 to-blue-800 shadow-[0_6px_12px_-2px_rgba(59,130,246,0.4),inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.3)]">
+            <FileCode className="w-5 h-5 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />
+          </div>
+        ),
         bg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30',
         label: ext.toUpperCase()
       };
     }
     if (['ppt', 'pptx', 'key', 'odp'].includes(ext)) {
       return {
-        icon: <Presentation className="w-5 h-5 text-orange-500 dark:text-orange-400" />,
+        icon: (
+          <div className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 via-amber-600 to-orange-800 shadow-[0_6px_12px_-2px_rgba(249,115,22,0.4),inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.3)]">
+            <Presentation className="w-5 h-5 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />
+          </div>
+        ),
         bg: 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/30',
         label: 'SLIDES'
       };
     }
     return {
-      icon: <FileCheck className="w-5 h-5 text-cyan-500 dark:text-cyan-400" />,
+      icon: (
+        <div className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-600 to-cyan-800 shadow-[0_6px_12px_-2px_rgba(6,182,212,0.4),inset_0_1px_2px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.3)]">
+          <FileCheck className="w-5 h-5 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />
+        </div>
+      ),
       bg: 'bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/30',
       label: ext.toUpperCase() || 'DOC'
     };
@@ -284,20 +305,34 @@ export const FileList: React.FC<FileListProps> = ({
                       </span>
                     </div>
 
-                    {/* Rubrique Tag */}
-                    <button
-                      onClick={() => onFilterChange({ rubriqueId: file.rubriqueId, sousRubriqueId: 'all' })}
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all truncate max-w-[170px] ${
-                        isRedRub
-                          ? 'badge-red hover:opacity-80'
-                          : isCyanRub
-                          ? 'badge-cyan hover:opacity-80'
-                          : 'badge-blue hover:opacity-80'
-                      }`}
-                      title={file.rubriqueName}
-                    >
-                      {file.rubriqueName}
-                    </button>
+                    {/* Rubrique & Downloadable Tags */}
+                    <div className="flex items-center space-x-1.5 flex-wrap justify-end gap-y-1">
+                      {file.downloadable ? (
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shadow-xs" title="Téléchargement autorisé">
+                          <Download className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <span>Téléchargeable</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title="Lecture en ligne protégée">
+                          <Lock className="w-3 h-3 text-slate-400" />
+                          <span>Lecture Seule</span>
+                        </span>
+                      )}
+
+                      <button
+                        onClick={() => onFilterChange({ rubriqueId: file.rubriqueId, sousRubriqueId: 'all' })}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all truncate max-w-[150px] ${
+                          isRedRub
+                            ? 'badge-red hover:opacity-80'
+                            : isCyanRub
+                            ? 'badge-cyan hover:opacity-80'
+                            : 'badge-blue hover:opacity-80'
+                        }`}
+                        title={file.rubriqueName}
+                      >
+                        {file.rubriqueName}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Course Title - Clickable to open protected reader */}
@@ -374,19 +409,39 @@ export const FileList: React.FC<FileListProps> = ({
                     </span>
                   </div>
 
-                  {/* Action Buttons: Pure Online Reading Mode (No Download) */}
+                  {/* Action Buttons */}
                   <div className="flex items-center space-x-2">
                     
                     {/* Primary Online Reader Button with anti-capture protection */}
                     <button
                       onClick={() => onPreview(file)}
                       className="flex-1 inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 shadow-xs hover:shadow-md transition-all active:scale-95 group/btn"
-                      title="Consulter le cours en mode lecture protégé (anti-capture d'écran)"
+                      title="Consulter le cours en mode lecture interactive"
                     >
                       <ShieldCheck className="w-4 h-4 text-emerald-300" />
                       <span>Lire en Mode Protégé</span>
-                      <Lock className="w-3.5 h-3.5 text-blue-200" />
+                      {!file.downloadable && <Lock className="w-3.5 h-3.5 text-blue-200" />}
                     </button>
+
+                    {/* Download Button if file is downloadable */}
+                    {file.downloadable ? (
+                      <a
+                        href={`/api/files/${file.id}/download`}
+                        download={file.originalName}
+                        className="inline-flex items-center space-x-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-500/30 transition-all shadow-xs active:scale-95"
+                        title="Télécharger ce document sur votre appareil"
+                      >
+                        <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="hidden sm:inline">Télécharger</span>
+                      </a>
+                    ) : (
+                      <span 
+                        className="inline-flex items-center justify-center p-2.5 rounded-xl text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 cursor-not-allowed"
+                        title="Téléchargement désactivé par l'administrateur (lecture en ligne uniquement)"
+                      >
+                        <Lock className="w-4 h-4" />
+                      </span>
+                    )}
 
                     {/* Admin Actions: Edit & Delete */}
                     {isAdmin && (

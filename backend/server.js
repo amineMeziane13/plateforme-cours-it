@@ -417,7 +417,7 @@ app.post('/api/files', upload.single('file'), (req, res) => {
       return res.status(400).json({ error: 'Veuillez sélectionner un fichier à déposer.' });
     }
 
-    const { title, rubriqueId, description, level, professor, tags } = req.body;
+    const { title, rubriqueId, sousRubriqueId, description, level, professor, tags } = req.body;
 
     if (!title || title.trim() === '') {
       // Remove uploaded file if title is missing
@@ -446,6 +446,7 @@ app.post('/api/files', upload.single('file'), (req, res) => {
     const newFile = db.createFile({
       title,
       rubriqueId,
+      sousRubriqueId: sousRubriqueId || null,
       description,
       level,
       professor,
@@ -453,7 +454,8 @@ app.post('/api/files', upload.single('file'), (req, res) => {
       filename: req.file.filename,
       originalName: Buffer.from(req.file.originalname, 'latin1').toString('utf8'), // handle utf8 accented characters
       mimeType: req.file.mimetype,
-      sizeBytes: req.file.size
+      sizeBytes: req.file.size,
+      downloadable: req.body.downloadable === 'true' || req.body.downloadable === true
     });
 
     res.status(201).json(newFile);
@@ -472,7 +474,7 @@ app.put('/api/files/:id', upload.single('file'), (req, res) => {
       return res.status(404).json({ error: 'Fichier introuvable.' });
     }
 
-    const { title, rubriqueId, description, level, professor, tags } = req.body;
+    const { title, rubriqueId, sousRubriqueId, description, level, professor, tags } = req.body;
 
     // Validate rubrique if changed
     if (rubriqueId) {
@@ -485,10 +487,12 @@ app.put('/api/files/:id', upload.single('file'), (req, res) => {
     const updatePayload = {
       title,
       rubriqueId,
+      sousRubriqueId: sousRubriqueId !== undefined ? (sousRubriqueId || null) : undefined,
       description,
       level,
       professor,
-      tags: typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : tags
+      tags: typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : tags,
+      downloadable: req.body.downloadable !== undefined ? (req.body.downloadable === 'true' || req.body.downloadable === true) : undefined
     };
 
     if (req.file) {
@@ -520,11 +524,30 @@ app.delete('/api/files/:id', (req, res) => {
   }
 });
 
-// Download file - Disabled by pedagogical policy (viewing/reading on platform only)
+// Download file - Conditionally allowed based on file's downloadable flag
 app.get('/api/files/:id/download', (req, res) => {
-  res.status(403).json({
-    error: 'Le téléchargement direct des fichiers est désactivé. Veuillez consulter le cours en mode lecture interactive et sécurisée sur la plateforme.'
-  });
+  try {
+    const { id } = req.params;
+    const file = db.getFileById(id);
+    if (!file) {
+      return res.status(404).json({ error: 'Fichier introuvable.' });
+    }
+    if (!file.downloadable) {
+      return res.status(403).json({
+        error: 'Le téléchargement de ce fichier est désactivé par l\'administrateur. Consultez-le en mode lecture interactive.'
+      });
+    }
+    const physicalPath = path.join(UPLOADS_DIR, file.filename);
+    if (!fs.existsSync(physicalPath)) {
+      return res.status(404).json({ error: 'Fichier physique introuvable.' });
+    }
+    db.incrementDownloads(id);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    res.sendFile(physicalPath);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors du téléchargement.' });
+  }
 });
 
 // View / Preview file inline (text, code, pdf, image) with view counter increment
@@ -600,6 +623,33 @@ app.get(['/api/files/:id/preview', '/api/files/:id/view'], (req, res) => {
   } catch (error) {
     console.error('Erreur lecture du document:', error);
     res.status(500).json({ error: 'Erreur lors de la lecture du document.' });
+  }
+});
+
+// ==========================================
+// VISITORS COUNTER
+// ==========================================
+
+// Get visitor count
+app.get('/api/visitors/count', (req, res) => {
+  try {
+    res.json({ count: db.getVisitorCount() });
+  } catch (error) {
+    res.json({ count: 0 });
+  }
+});
+
+// Ping visitor (called once per session)
+app.post('/api/visitors/ping', (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId requis.' });
+    }
+    const isNew = db.incrementVisitor(sessionId);
+    res.json({ success: true, isNew, count: db.getVisitorCount() });
+  } catch (error) {
+    res.json({ success: false, count: 0 });
   }
 });
 

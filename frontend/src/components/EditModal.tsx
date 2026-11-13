@@ -9,7 +9,9 @@ import {
   User, 
   Tag, 
   AlignLeft,
-  GraduationCap
+  GraduationCap,
+  Download,
+  Lock
 } from 'lucide-react';
 import { CourseFile, Rubrique } from '../types';
 
@@ -37,6 +39,7 @@ export const EditModal: React.FC<EditModalProps> = ({
   const [level, setLevel] = useState('Licence 3');
   const [professor, setProfessor] = useState('');
   const [tags, setTags] = useState('');
+  const [isDownloadable, setIsDownloadable] = useState(false);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,6 +54,7 @@ export const EditModal: React.FC<EditModalProps> = ({
       setLevel(file.level || 'Licence 3');
       setProfessor(file.professor || '');
       setTags(Array.isArray(file.tags) ? file.tags.join(', ') : '');
+      setIsDownloadable(Boolean(file.downloadable));
       setNewFile(null);
     }
   }, [file]);
@@ -83,6 +87,7 @@ export const EditModal: React.FC<EditModalProps> = ({
       formData.append('level', level);
       formData.append('professor', professor.trim());
       formData.append('tags', tags.trim());
+      formData.append('downloadable', String(isDownloadable));
       
       if (newFile) {
         formData.append('file', newFile);
@@ -299,6 +304,48 @@ export const EditModal: React.FC<EditModalProps> = ({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Downloadable Option Toggle */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-cyber-darker border border-slate-200 dark:border-cyber-border flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className={`p-2 rounded-xl border transition-colors ${
+                isDownloadable 
+                  ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' 
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+              }`}>
+                {isDownloadable ? <Download className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    Autoriser le téléchargement direct
+                  </span>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                    isDownloadable 
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {isDownloadable ? 'Téléchargeable' : 'Lecture Seule'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isDownloadable 
+                    ? 'Les étudiants pourront télécharger le document physique sur leur machine.' 
+                    : 'Le document sera uniquement lisible en ligne avec la visionneuse interactive protégée.'}
+                </p>
+              </div>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={isDownloadable}
+                onChange={(e) => setIsDownloadable(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
+            </label>
           </div>
 
           {/* Actions */}

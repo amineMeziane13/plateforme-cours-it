@@ -35,6 +35,7 @@ export interface CourseFile {
   sizeBytes: number;
   downloads?: number;
   views?: number;
+  downloadable?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -45,6 +46,7 @@ export interface PlatformStats {
   totalViews?: number;
   totalDownloads?: number;
   totalSizeBytes: number;
+  visitorCount?: number;
 }
 
 export interface FilterState {

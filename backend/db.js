@@ -291,7 +291,9 @@ class Database {
           pass: ''
         }
       },
-      dynamicAuth: null
+      dynamicAuth: null,
+      visitorCount: 0,
+      lastVisitors: []
     };
     this.init();
   }
@@ -344,6 +346,24 @@ class Database {
         if (!this.data.messages) {
           this.data.messages = [];
           needsSave = true;
+        }
+        if (typeof this.data.visitorCount === 'undefined') {
+          this.data.visitorCount = 0;
+          needsSave = true;
+        }
+        if (!this.data.lastVisitors) {
+          this.data.lastVisitors = [];
+          needsSave = true;
+        }
+
+        // Ensure downloadable attribute exists on all files
+        if (Array.isArray(this.data.files)) {
+          this.data.files.forEach(f => {
+            if (typeof f.downloadable === 'undefined') {
+              f.downloadable = Boolean(f.id === 'file-2' || f.id === 'file-5');
+              needsSave = true;
+            }
+          });
         }
 
         // Ensure sous-rubriques exist on all rubriques
@@ -416,6 +436,7 @@ class Database {
       return {
         id: `file-${index + 1}`,
         ...meta,
+        downloadable: sf.downloadable !== undefined ? sf.downloadable : false,
         sizeBytes: size,
         path: sf.filename
       };
@@ -426,9 +447,15 @@ class Database {
 
   save() {
     try {
-      const tempPath = `${DB_FILE}.tmp`;
-      fs.writeFileSync(tempPath, JSON.stringify(this.data, null, 2), 'utf8');
-      fs.renameSync(tempPath, DB_FILE);
+      const content = JSON.stringify(this.data, null, 2);
+      try {
+        const tempPath = `${DB_FILE}.tmp`;
+        fs.writeFileSync(tempPath, content, 'utf8');
+        fs.renameSync(tempPath, DB_FILE);
+      } catch (renameErr) {
+        // Fallback for Windows EPERM / filesystem locking
+        fs.writeFileSync(DB_FILE, content, 'utf8');
+      }
     } catch (err) {
       console.error('Erreur de sauvegarde de la base de données:', err);
     }
@@ -591,6 +618,7 @@ class Database {
       sizeBytes: fileData.sizeBytes || 0,
       downloads: 0,
       views: 0,
+      downloadable: fileData.downloadable !== undefined ? Boolean(fileData.downloadable) : false,
       createdAt: new Date().toISOString()
     };
 
@@ -626,6 +654,7 @@ class Database {
       originalName: updateData.originalName || existing.originalName,
       mimeType: updateData.mimeType || existing.mimeType,
       sizeBytes: updateData.sizeBytes !== undefined ? updateData.sizeBytes : existing.sizeBytes,
+      downloadable: updateData.downloadable !== undefined ? Boolean(updateData.downloadable) : existing.downloadable,
       updatedAt: new Date().toISOString()
     };
 
@@ -807,7 +836,8 @@ class Database {
       totalRubriques,
       totalViews,
       totalDownloads: totalViews,
-      totalSizeBytes
+      totalSizeBytes,
+      visitorCount: this.data.visitorCount || 0
     };
   }
 
@@ -888,6 +918,29 @@ class Database {
 
   verifyAdmin(username, password) {
     return this.verifyMasterAdmin(username, password);
+  }
+
+  // VISITORS
+  getVisitorCount() {
+    return this.data.visitorCount || 0;
+  }
+
+  incrementVisitor(sessionId) {
+    if (!this.data.lastVisitors) this.data.lastVisitors = [];
+    // Don't count same session twice within 24h
+    const now = Date.now();
+    const recent = this.data.lastVisitors.find(v => v.id === sessionId && (now - v.ts) < 86400000);
+    if (!recent) {
+      this.data.visitorCount = (this.data.visitorCount || 0) + 1;
+      this.data.lastVisitors.push({ id: sessionId, ts: now });
+      // Keep only last 500 sessions
+      if (this.data.lastVisitors.length > 500) {
+        this.data.lastVisitors = this.data.lastVisitors.slice(-500);
+      }
+      this.save();
+      return true;
+    }
+    return false;
   }
 }
 
