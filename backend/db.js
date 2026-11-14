@@ -6,6 +6,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
+const BACKUP_FILE = path.join(DATA_DIR, 'database.backup.json');
+const BAK_FILE = path.join(DATA_DIR, 'database.bak.json');
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(__dirname, '../uploads');
 
 // Ensure directories exist
@@ -299,130 +301,198 @@ class Database {
   }
 
   init() {
-    if (fs.existsSync(DB_FILE)) {
+    let loadedData = null;
+    let source = null;
+
+    // Helper to safely inspect and parse JSON from a file path
+    const tryLoad = (filePath) => {
       try {
-        const raw = fs.readFileSync(DB_FILE, 'utf8');
-        this.data = JSON.parse(raw);
+        if (!fs.existsSync(filePath)) return null;
+        const raw = fs.readFileSync(filePath, 'utf8');
+        if (!raw || raw.trim().length === 0) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && (Array.isArray(parsed.rubriques) || Array.isArray(parsed.files))) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn(`[DB] Impossible de parser ${filePath}:`, e.message);
+      }
+      return null;
+    };
 
-        // Ensure robust security and email configuration in DB
-        if (!this.data.adminConfig) {
-          this.data.adminConfig = {};
-        }
-        if (!this.data.adminConfig.email) {
-          this.data.adminConfig.email = 'amine.blackline@gmail.com';
-        }
-        if (!this.data.adminConfig.username) {
-          this.data.adminConfig.username = 'amine';
-        }
-        if (!this.data.adminConfig.masterPassword) {
-          this.data.adminConfig.masterPassword = 'AmineAdmin2026!';
-        }
-        if (!this.data.adminConfig.smtp) {
-          this.data.adminConfig.smtp = {
-            service: 'gmail',
-            user: 'amine.blackline@gmail.com',
-            pass: ''
-          };
-        }
-        if (typeof this.data.dynamicAuth === 'undefined') {
-          this.data.dynamicAuth = null;
-        }
+    // 1. Try reading standard DB_FILE
+    loadedData = tryLoad(DB_FILE);
+    if (loadedData) source = 'primary';
 
-        // Ensure group leaders and messages collections exist
-        let needsSave = false;
-        if (!this.data.groupLeaders) {
-          this.data.groupLeaders = [
-            {
-              id: 'lead-1',
-              username: 'delegue_g1',
-              password: 'G1Password2026!',
-              studentName: 'Yacine Benali',
-              groupName: 'Groupe G1 - Licence 3',
-              createdAt: new Date().toISOString()
-            }
-          ];
-          needsSave = true;
-        }
-        if (!this.data.messages) {
-          this.data.messages = [];
-          needsSave = true;
-        }
-        if (typeof this.data.visitorCount === 'undefined') {
-          this.data.visitorCount = 0;
-          needsSave = true;
-        }
-        if (!this.data.lastVisitors) {
-          this.data.lastVisitors = [];
-          needsSave = true;
-        }
+    // 2. Try interrupted .tmp file
+    const tempPath = `${DB_FILE}.tmp`;
+    if (!loadedData && fs.existsSync(tempPath)) {
+      loadedData = tryLoad(tempPath);
+      if (loadedData) {
+        source = 'temp';
+        console.log('[DB] ✅ Restauration réussie depuis le fichier temporaire non finalisé.');
+      }
+    }
 
-        // Ensure downloadable attribute exists on all files
-        if (Array.isArray(this.data.files)) {
-          this.data.files.forEach(f => {
-            if (typeof f.downloadable === 'undefined') {
-              f.downloadable = Boolean(f.id === 'file-2' || f.id === 'file-5');
-              needsSave = true;
-            }
-          });
-        }
+    // 3. Try primary backup file
+    if (!loadedData && fs.existsSync(BACKUP_FILE)) {
+      loadedData = tryLoad(BACKUP_FILE);
+      if (loadedData) {
+        source = 'backup';
+        console.log('[DB] ✅ Restauration réussie depuis la sauvegarde automatique (database.backup.json) !');
+      }
+    }
 
-        // Ensure sous-rubriques exist on all rubriques
-        if (Array.isArray(this.data.rubriques)) {
-          this.data.rubriques.forEach(r => {
-            if (!r.sousRubriques) {
-              r.sousRubriques = [];
-              if (r.id === 'rub-securite') {
-                r.sousRubriques = [
-                  { id: 'sub-sec-1', name: 'Cryptographie & Protocoles', description: 'Chiffrement symétrique/asymétrique, RSA, AES' },
-                  { id: 'sub-sec-2', name: 'Sécurité Réseaux & Pare-feu', description: 'IPTables, IDS/IPS, VPN, DMZ' },
-                  { id: 'sub-sec-3', name: 'Ethical Hacking & Pentesting', description: 'Audits de sécurité, tests d\'intrusion' }
-                ];
-                needsSave = true;
-              } else if (r.id === 'rub-web') {
-                r.sousRubriques = [
-                  { id: 'sub-web-1', name: 'Frontend React & TypeScript', description: 'Composants modernes, Hooks, Tailwind' },
-                  { id: 'sub-web-2', name: 'Backend Node.js & API REST', description: 'Express, JWT, architectures microservices' }
-                ];
-                needsSave = true;
-              } else if (r.id === 'rub-reseaux') {
-                r.sousRubriques = [
-                  { id: 'sub-res-1', name: 'Routage & Commutation Cisco', description: 'OSPF, BGP, VLANs, Spanning-Tree' },
-                  { id: 'sub-res-2', name: 'Protocoles TCP/IP & Services', description: 'DNS, DHCP, HTTP/3, Wireshark' }
-                ];
-                needsSave = true;
-              } else if (r.id === 'rub-linux') {
-                r.sousRubriques = [
-                  { id: 'sub-lin-1', name: 'Administration Système', description: 'Gestion des utilisateurs, permissions, services systemd' },
-                  { id: 'sub-lin-2', name: 'Scripting Bash & Automatisation', description: 'Scripts avancés, cron jobs, parsing de logs' }
-                ];
-                needsSave = true;
-              }
-            }
-          });
-        }
+    // 4. Try secondary backup file
+    if (!loadedData && fs.existsSync(BAK_FILE)) {
+      loadedData = tryLoad(BAK_FILE);
+      if (loadedData) {
+        source = 'bak';
+        console.log('[DB] ✅ Restauration réussie depuis le fichier secondaire (database.bak.json) !');
+      }
+    }
 
-        // Ensure sample physical files exist on disk if missing on container boot
-        if (Array.isArray(this.data.files)) {
-          this.data.files.forEach(f => {
-            const filePath = path.join(UPLOADS_DIR, f.filename);
-            if (!fs.existsSync(filePath)) {
-              const sample = sampleFiles.find(s => s.filename === f.filename);
-              if (sample) {
-                fs.writeFileSync(filePath, sample.content, 'utf8');
-              }
-            }
-          });
+    if (loadedData) {
+      this.data = loadedData;
+      // If restored from a backup or temp file, re-persist primary file immediately
+      if (source !== 'primary') {
+        try {
+          fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
+        } catch (e) {
+          console.error('[DB] Erreur écriture DB_FILE après restauration:', e);
         }
-
-        if (needsSave) {
-          this.save();
-        }
-      } catch (err) {
-        console.error('Erreur lecture DB, réinitialisation...', err);
-        this.seed();
       }
     } else {
+      // If DB_FILE existed but was broken/corrupt, save it for forensic recovery before seeding
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          const corruptBackup = path.join(DATA_DIR, `database.corrupted-${Date.now()}.json`);
+          fs.copyFileSync(DB_FILE, corruptBackup);
+          console.warn(`[DB] Copie du fichier endommagé archivée dans : ${corruptBackup}`);
+        } catch (_) {}
+      }
+      console.log('[DB] Aucune base de données valide trouvée, initialisation des données par défaut...');
       this.seed();
+      return;
+    }
+
+    // Ensure robust security and email configuration in DB
+    if (!this.data.adminConfig) {
+      this.data.adminConfig = {};
+    }
+    if (!this.data.adminConfig.email) {
+      this.data.adminConfig.email = 'amine.blackline@gmail.com';
+    }
+    if (!this.data.adminConfig.username) {
+      this.data.adminConfig.username = 'amine';
+    }
+    if (!this.data.adminConfig.masterPassword) {
+      this.data.adminConfig.masterPassword = 'AmineAdmin2026!';
+    }
+    if (!this.data.adminConfig.smtp) {
+      this.data.adminConfig.smtp = {
+        service: 'gmail',
+        user: 'amine.blackline@gmail.com',
+        pass: ''
+      };
+    }
+    if (typeof this.data.dynamicAuth === 'undefined') {
+      this.data.dynamicAuth = null;
+    }
+
+    // Ensure group leaders and messages collections exist
+    let needsSave = false;
+    if (!this.data.groupLeaders) {
+      this.data.groupLeaders = [
+        {
+          id: 'lead-1',
+          username: 'delegue_g1',
+          password: 'G1Password2026!',
+          studentName: 'Yacine Benali',
+          groupName: 'Groupe G1 - Licence 3',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      needsSave = true;
+    }
+    if (!this.data.messages) {
+      this.data.messages = [];
+      needsSave = true;
+    }
+    if (typeof this.data.visitorCount === 'undefined') {
+      this.data.visitorCount = 0;
+      needsSave = true;
+    }
+    if (!this.data.lastVisitors) {
+      this.data.lastVisitors = [];
+      needsSave = true;
+    }
+
+    // Ensure downloadable attribute exists on all files
+    if (Array.isArray(this.data.files)) {
+      this.data.files.forEach(f => {
+        if (typeof f.downloadable === 'undefined') {
+          f.downloadable = Boolean(f.id === 'file-2' || f.id === 'file-5');
+          needsSave = true;
+        }
+      });
+    }
+
+    // Ensure sous-rubriques exist on all rubriques
+    if (Array.isArray(this.data.rubriques)) {
+      this.data.rubriques.forEach(r => {
+        if (!r.sousRubriques) {
+          r.sousRubriques = [];
+          if (r.id === 'rub-securite') {
+            r.sousRubriques = [
+              { id: 'sub-sec-1', name: 'Cryptographie & Protocoles', description: 'Chiffrement symétrique/asymétrique, RSA, AES' },
+              { id: 'sub-sec-2', name: 'Sécurité Réseaux & Pare-feu', description: 'IPTables, IDS/IPS, VPN, DMZ' },
+              { id: 'sub-sec-3', name: 'Ethical Hacking & Pentesting', description: 'Audits de sécurité, tests d\'intrusion' }
+            ];
+            needsSave = true;
+          } else if (r.id === 'rub-web') {
+            r.sousRubriques = [
+              { id: 'sub-web-1', name: 'Frontend React & TypeScript', description: 'Composants modernes, Hooks, Tailwind' },
+              { id: 'sub-web-2', name: 'Backend Node.js & API REST', description: 'Express, JWT, architectures microservices' }
+            ];
+            needsSave = true;
+          } else if (r.id === 'rub-reseaux') {
+            r.sousRubriques = [
+              { id: 'sub-res-1', name: 'Routage & Commutation Cisco', description: 'OSPF, BGP, VLANs, Spanning-Tree' },
+              { id: 'sub-res-2', name: 'Protocoles TCP/IP & Services', description: 'DNS, DHCP, HTTP/3, Wireshark' }
+            ];
+            needsSave = true;
+          } else if (r.id === 'rub-linux') {
+            r.sousRubriques = [
+              { id: 'sub-lin-1', name: 'Administration Système', description: 'Gestion des utilisateurs, permissions, services systemd' },
+              { id: 'sub-lin-2', name: 'Scripting Bash & Automatisation', description: 'Scripts avancés, cron jobs, parsing de logs' }
+            ];
+            needsSave = true;
+          }
+        }
+      });
+    }
+
+    // Ensure sample physical files exist on disk if missing on container boot
+    if (Array.isArray(this.data.files)) {
+      this.data.files.forEach(f => {
+        const filePath = path.join(UPLOADS_DIR, f.filename);
+        if (!fs.existsSync(filePath)) {
+          const sample = sampleFiles.find(s => s.filename === f.filename);
+          if (sample) {
+            fs.writeFileSync(filePath, sample.content, 'utf8');
+          }
+        }
+      });
+    }
+
+    // Create immediate safety backup
+    try {
+      fs.writeFileSync(BACKUP_FILE, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (_) {}
+
+    if (needsSave) {
+      this.save();
     }
   }
 
@@ -448,16 +518,33 @@ class Database {
   save() {
     try {
       const content = JSON.stringify(this.data, null, 2);
+      const tempPath = `${DB_FILE}.tmp`;
+
+      // 1. Snapshot previous version to secondary backup file
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          fs.copyFileSync(DB_FILE, BAK_FILE);
+        } catch (_) {}
+      }
+
+      // 2. Physical flush to temp file
       try {
-        const tempPath = `${DB_FILE}.tmp`;
-        fs.writeFileSync(tempPath, content, 'utf8');
+        const fd = fs.openSync(tempPath, 'w');
+        fs.writeSync(fd, content, 0, 'utf8');
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
         fs.renameSync(tempPath, DB_FILE);
-      } catch (renameErr) {
-        // Fallback for Windows EPERM / filesystem locking
+      } catch (atomicErr) {
+        // Fallback for Windows file-system locking
         fs.writeFileSync(DB_FILE, content, 'utf8');
       }
+
+      // 3. Mirror to primary persistent backup
+      try {
+        fs.writeFileSync(BACKUP_FILE, content, 'utf8');
+      } catch (_) {}
     } catch (err) {
-      console.error('Erreur de sauvegarde de la base de données:', err);
+      console.error('Erreur critique de sauvegarde de la base de données:', err);
     }
   }
 
@@ -941,6 +1028,35 @@ class Database {
       return true;
     }
     return false;
+  }
+
+  // EXPORT / IMPORT DATABASE (Backup & Restore)
+  exportDatabase() {
+    return JSON.stringify(this.data, null, 2);
+  }
+
+  importDatabase(imported) {
+    if (!imported || typeof imported !== 'object') {
+      throw new Error('Format de données JSON invalide.');
+    }
+    if (!Array.isArray(imported.rubriques)) {
+      throw new Error('La sauvegarde doit obligatoirement contenir une liste de rubriques.');
+    }
+
+    // Safety archive before overwriting
+    try {
+      const safetyBackup = path.join(DATA_DIR, `database.pre-import-${Date.now()}.json`);
+      fs.writeFileSync(safetyBackup, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (_) {}
+
+    this.data = {
+      ...this.data,
+      ...imported,
+      rubriques: imported.rubriques,
+      files: Array.isArray(imported.files) ? imported.files : this.data.files
+    };
+    this.save();
+    return true;
   }
 }
 

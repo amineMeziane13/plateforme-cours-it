@@ -583,7 +583,9 @@ app.get(['/api/files/:id/preview', '/api/files/:id/view'], (req, res) => {
           type: 'pdf',
           title: file.title,
           originalName: file.originalName,
-          dataUrl: `data:application/pdf;base64,${buffer.toString('base64')}`
+          streamUrl: `/api/files/${file.id}/view`,
+          sizeBytes: file.sizeBytes,
+          downloadable: file.downloadable
         });
       }
       if (isImage) {
@@ -591,16 +593,43 @@ app.get(['/api/files/:id/preview', '/api/files/:id/view'], (req, res) => {
           type: 'image',
           title: file.title,
           originalName: file.originalName,
-          dataUrl: `data:${file.mimeType || 'image/png'};base64,${buffer.toString('base64')}`
+          streamUrl: `/api/files/${file.id}/view`,
+          dataUrl: `data:${file.mimeType || 'image/png'};base64,${buffer.toString('base64')}`,
+          sizeBytes: file.sizeBytes,
+          downloadable: file.downloadable
         });
       }
-      // Text, code, markdown or text disguised as pdf
+      if (['.zip', '.rar', '.7z', '.tar', '.gz'].includes(ext)) {
+        return res.json({
+          type: 'archive',
+          title: file.title,
+          originalName: file.originalName,
+          extension: ext.replace('.', '').toUpperCase(),
+          sizeBytes: file.sizeBytes,
+          downloadable: file.downloadable
+        });
+      }
+      if (['.ppt', '.pptx', '.key', '.odp', '.doc', '.docx', '.odt'].includes(ext)) {
+        return res.json({
+          type: 'document',
+          title: file.title,
+          originalName: file.originalName,
+          extension: ext.replace('.', '').toUpperCase(),
+          sizeBytes: file.sizeBytes,
+          downloadable: file.downloadable
+        });
+      }
+      // Text, code, markdown or text file
+      const contentStr = buffer.toString('utf8');
       return res.json({
         type: 'text',
         language: ext.replace('.', '') || 'markdown',
         title: file.title,
         originalName: file.originalName,
-        content: buffer.toString('utf8')
+        content: contentStr,
+        lineCount: contentStr.split('\n').length,
+        sizeBytes: file.sizeBytes,
+        downloadable: file.downloadable
       });
     }
 
@@ -652,6 +681,49 @@ app.post('/api/visitors/ping', (req, res) => {
     res.json({ success: false, count: 0 });
   }
 });
+
+// ==========================================
+// DATABASE BACKUP & RESTORATION (Admin)
+// ==========================================
+
+// Export full database as a JSON backup file
+app.get('/api/admin/database/export', (req, res) => {
+  try {
+    const backupJson = db.exportDatabase();
+    const dateStr = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Disposition', `attachment; filename="backup-it-academy-${dateStr}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(backupJson);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de l\'export de la base de données.' });
+  }
+});
+
+// Import full database from JSON payload
+app.post('/api/admin/database/import', (req, res) => {
+  try {
+    const payload = req.body;
+    if (!payload || !payload.rubriques) {
+      return res.status(400).json({ error: 'Fichier de sauvegarde invalide. La clé "rubriques" est manquante.' });
+    }
+    db.importDatabase(payload);
+    res.json({ success: true, message: 'Base de données restaurée avec succès !' });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Erreur lors de la restauration de la base.' });
+  }
+});
+
+// Graceful process shutdown to flush database writes
+const handleExit = (signal) => {
+  console.log(`[Server] Arrêt propre suite au signal ${signal}...`);
+  try {
+    db.save();
+  } catch (_) {}
+  process.exit(0);
+};
+
+process.on('SIGINT', () => handleExit('SIGINT'));
+process.on('SIGTERM', () => handleExit('SIGTERM'));
 
 // Serve frontend dist when built
 const FRONTEND_DIST = path.resolve(__dirname, '../frontend/dist');

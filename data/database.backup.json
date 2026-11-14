@@ -1,0 +1,328 @@
+{
+  "rubriques": [
+    {
+      "id": "rub-securite",
+      "name": "Cybersécurité & Ethical Hacking",
+      "description": "Sécurité offensive/défensive, protocoles cryptographiques, pentesting et audits.",
+      "icon": "ShieldAlert",
+      "color": "red",
+      "badge": "Urgent & Critique",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-sec-1",
+          "name": "Cryptographie & Protocoles",
+          "description": "Chiffrement symétrique/asymétrique, RSA, AES"
+        },
+        {
+          "id": "sub-sec-2",
+          "name": "Sécurité Réseaux & Pare-feu",
+          "description": "IPTables, IDS/IPS, VPN, DMZ"
+        },
+        {
+          "id": "sub-sec-3",
+          "name": "Ethical Hacking & Pentesting",
+          "description": "Audits de sécurité, tests d'intrusion"
+        }
+      ]
+    },
+    {
+      "id": "rub-web",
+      "name": "Développement Web & Mobile",
+      "description": "Architecture frontend & backend, API REST, React, Node.js, TypeScript et mobile.",
+      "icon": "Code2",
+      "color": "blue",
+      "badge": "Fullstack",
+      "createdAt": "2026-09-02T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-web-1",
+          "name": "Frontend React & TypeScript",
+          "description": "Composants modernes, Hooks, Tailwind"
+        },
+        {
+          "id": "sub-web-2",
+          "name": "Backend Node.js & API REST",
+          "description": "Express, JWT, architectures microservices"
+        }
+      ]
+    },
+    {
+      "id": "rub-reseaux",
+      "name": "Réseaux & Télécommunications",
+      "description": "Modèle OSI, protocoles TCP/IP, routage Cisco/Juniper, VLAN et sous-réseaux.",
+      "icon": "Network",
+      "color": "cyan",
+      "badge": "Infrastructure",
+      "createdAt": "2026-09-03T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-res-1",
+          "name": "Routage & Commutation Cisco",
+          "description": "OSPF, BGP, VLANs, Spanning-Tree"
+        },
+        {
+          "id": "sub-res-2",
+          "name": "Protocoles TCP/IP & Services",
+          "description": "DNS, DHCP, HTTP/3, Wireshark"
+        }
+      ]
+    },
+    {
+      "id": "rub-linux",
+      "name": "Systèmes d'Exploitation & Linux",
+      "description": "Administration système Linux/UNIX, Bash scripting, ordonnancement et kernel.",
+      "icon": "Terminal",
+      "color": "blue",
+      "badge": "SysAdmin",
+      "createdAt": "2026-09-04T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-lin-1",
+          "name": "Administration Système",
+          "description": "Gestion des utilisateurs, permissions, services systemd"
+        },
+        {
+          "id": "sub-lin-2",
+          "name": "Scripting Bash & Automatisation",
+          "description": "Scripts avancés, cron jobs, parsing de logs"
+        }
+      ]
+    },
+    {
+      "id": "rub-cloud",
+      "name": "Cloud Computing & DevOps",
+      "description": "Docker, conteneurs, Kubernetes, CI/CD, Terraform et déploiement cloud AWS/GCP.",
+      "icon": "Cloud",
+      "color": "red",
+      "badge": "DevOps",
+      "createdAt": "2026-09-05T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-cld-1",
+          "name": "Conteneurisation Docker",
+          "description": "Dockerfile, multi-stage, images minimales"
+        },
+        {
+          "id": "sub-cld-2",
+          "name": "Orchestration Kubernetes",
+          "description": "Pods, Deployments, Services, Helm"
+        }
+      ]
+    },
+    {
+      "id": "rub-bdd",
+      "name": "Bases de Données & Big Data",
+      "description": "SQL relationnel avancé, NoSQL MongoDB/Redis, modélisation Merise et optimisation.",
+      "icon": "Database",
+      "color": "cyan",
+      "badge": "Données",
+      "createdAt": "2026-09-06T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-bdd-1",
+          "name": "Bases Relationnelles SQL",
+          "description": "PostgreSQL, MySQL, Transactions, Index"
+        },
+        {
+          "id": "sub-bdd-2",
+          "name": "Bases NoSQL & Cache",
+          "description": "MongoDB, Redis, Clé-Valeur, Document"
+        }
+      ]
+    },
+    {
+      "id": "rub-algo",
+      "name": "Algorithmique & Structures de Données",
+      "description": "Complexité algorithmique O(n), arbres, graphes, programmation dynamique Python/C++.",
+      "icon": "Cpu",
+      "color": "blue",
+      "badge": "Fondamentaux",
+      "createdAt": "2026-09-07T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-alg-1",
+          "name": "Structures Linéaires & Arbres",
+          "description": "Listes, Piles, Files, BST, AVL"
+        },
+        {
+          "id": "sub-alg-2",
+          "name": "Graphes & Plus Court Chemin",
+          "description": "Dijkstra, Bellman-Ford, BFS, DFS"
+        }
+      ]
+    },
+    {
+      "id": "rub-ia",
+      "name": "Intelligence Artificielle & Machine Learning",
+      "description": "Réseaux de neurones, LLM, apprentissage supervisé, PyTorch et vision par ordinateur.",
+      "icon": "Sparkles",
+      "color": "red",
+      "badge": "Innovation",
+      "createdAt": "2026-09-08T08:00:00.000Z",
+      "sousRubriques": [
+        {
+          "id": "sub-ia-1",
+          "name": "Machine Learning Fondamental",
+          "description": "Régression, Classification, Scikit-Learn"
+        },
+        {
+          "id": "sub-ia-2",
+          "name": "Deep Learning & NLP",
+          "description": "PyTorch, Transformers, Vision"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "id": "file-1",
+      "filename": "cours-securite-reseaux-firewall.txt",
+      "originalName": "Cours_Securite_Reseaux_Firewalls_v2.pdf",
+      "title": "Architecture Pare-feu & Détection d'Intrusions (IDS/IPS)",
+      "rubriqueId": "rub-securite",
+      "sousRubriqueId": "sub-sec-2",
+      "description": "Guide complet sur la mise en place de zones DMZ, règles iptables, inspection avec Suricata et Snort.",
+      "level": "Master 1",
+      "professor": "Dr. Marc Valery (Cybersécurité)",
+      "tags": [
+        "Pare-feu",
+        "Suricata",
+        "iptables",
+        "DMZ",
+        "Sécurité"
+      ],
+      "mimeType": "application/pdf",
+      "downloads": 142,
+      "views": 258,
+      "createdAt": "2026-10-15T10:30:00.000Z",
+      "sizeBytes": 918,
+      "path": "cours-securite-reseaux-firewall.txt",
+      "downloadable": false
+    },
+    {
+      "id": "file-2",
+      "filename": "tp-api-rest-nodejs.js",
+      "originalName": "TP_API_REST_Express_TypeScript.zip",
+      "title": "TP Pratique : API REST Sécurisée avec Express & JWT",
+      "rubriqueId": "rub-web",
+      "sousRubriqueId": "sub-web-2",
+      "description": "Sujet et code source complet pour concevoir une API REST avec authentification token JWT et validation Zod.",
+      "level": "Licence 3",
+      "professor": "Prof. Sarah Benali",
+      "tags": [
+        "Node.js",
+        "Express",
+        "JWT",
+        "TypeScript",
+        "REST API"
+      ],
+      "mimeType": "application/zip",
+      "downloads": 289,
+      "views": 412,
+      "createdAt": "2026-10-18T14:15:00.000Z",
+      "sizeBytes": 692,
+      "path": "tp-api-rest-nodejs.js",
+      "downloadable": true
+    },
+    {
+      "id": "file-3",
+      "filename": "cheatsheet-cisco-routage.txt",
+      "originalName": "Cheatsheet_Cisco_Routage_OSPF_BGP.pdf",
+      "title": "Aide-Mémoire Cisco IOS : Routage OSPF & VLANs",
+      "rubriqueId": "rub-reseaux",
+      "sousRubriqueId": "sub-res-1",
+      "description": "Synthèse des commandes CLI Cisco Catalyst pour configurer le trunk 802.1Q, inter-vlan et OSPF multi-aires.",
+      "level": "Licence 2",
+      "professor": "Ing. Thomas Lefebvre",
+      "tags": [
+        "Cisco",
+        "OSPF",
+        "VLAN",
+        "Trunk",
+        "CLI"
+      ],
+      "mimeType": "application/pdf",
+      "downloads": 312,
+      "views": 530,
+      "createdAt": "2026-10-20T09:00:00.000Z",
+      "sizeBytes": 508,
+      "path": "cheatsheet-cisco-routage.txt",
+      "downloadable": false
+    },
+    {
+      "id": "file-4",
+      "filename": "cours-docker-k8s.txt",
+      "originalName": "DevOps_Docker_Kubernetes_Architecture.pdf",
+      "title": "Conteneurisation Docker & Orchestration Kubernetes",
+      "rubriqueId": "rub-cloud",
+      "sousRubriqueId": "sub-cld-1",
+      "description": "Introduction aux Dockerfile multi-stage, Docker Compose, Pods, Deployments et Services Kubernetes.",
+      "level": "Master 2",
+      "professor": "Alexandre Roux (Cloud Architect)",
+      "tags": [
+        "Docker",
+        "Kubernetes",
+        "K8s",
+        "DevOps",
+        "Containers"
+      ],
+      "mimeType": "application/pdf",
+      "downloads": 195,
+      "views": 344,
+      "createdAt": "2026-10-22T16:45:00.000Z",
+      "sizeBytes": 683,
+      "path": "cours-docker-k8s.txt",
+      "downloadable": false
+    },
+    {
+      "id": "file-5",
+      "filename": "cours-linux-bash-scripting.sh",
+      "originalName": "Support_Linux_Bash_Administration.sh",
+      "title": "Scripting Bash Avancé pour Administrateurs Systèmes",
+      "rubriqueId": "rub-linux",
+      "sousRubriqueId": "sub-lin-2",
+      "description": "Scripts de surveillance de charge, rotation automatique des journaux et audit de sécurité des comptes utilisateurs.",
+      "level": "Licence 2",
+      "professor": "Dr. Marc Valery",
+      "tags": [
+        "Linux",
+        "Bash",
+        "SysAdmin",
+        "Cron",
+        "Automatisation"
+      ],
+      "mimeType": "text/x-shellscript",
+      "downloads": 164,
+      "views": 277,
+      "createdAt": "2026-10-25T11:20:00.000Z",
+      "sizeBytes": 386,
+      "path": "cours-linux-bash-scripting.sh",
+      "downloadable": true
+    }
+  ],
+  "groupLeaders": [
+    {
+      "id": "lead-1",
+      "username": "delegue_g1",
+      "password": "G1Password2026!",
+      "studentName": "Yacine Benali",
+      "groupName": "Groupe G1 - Licence 3",
+      "createdAt": "2026-10-01T10:00:00.000Z"
+    }
+  ],
+  "messages": [],
+  "adminConfig": {
+    "username": "amine",
+    "email": "amine.blackline@gmail.com",
+    "masterPassword": "AmineAdmin2026!",
+    "smtp": {
+      "service": "gmail",
+      "user": "amine.blackline@gmail.com",
+      "pass": ""
+    }
+  },
+  "dynamicAuth": null,
+  "visitorCount": 0,
+  "lastVisitors": []
+}

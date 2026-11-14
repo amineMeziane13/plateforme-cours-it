@@ -281,6 +281,21 @@ export async function loginAdmin(username: string, password: string) {
   return result;
 }
 
+export function getExportDatabaseUrl(): string {
+  return `${API_BASE}/admin/database/export`;
+}
+
+export async function importDatabase(data: any): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/admin/database/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || 'Erreur lors de la restauration.');
+  return result;
+}
+
 export const api = {
   getStats,
   getRubriques,
@@ -307,7 +322,9 @@ export const api = {
   requestDynamicCredentials,
   loginAdmin,
   pingVisitor,
-  getVisitorCount
+  getVisitorCount,
+  getExportDatabaseUrl,
+  importDatabase
 };
 
 export default api;
