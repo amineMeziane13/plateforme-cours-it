@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title IT.ACADEMY - Arrêt du Serveur
+title IT.ACADEMY - Arrêt Sécurisé du Serveur
 color 0C
 
 echo ================================================================
-echo    Arrêt propre du serveur IT.ACADEMY
+echo    🎓 IT.ACADEMY - ARRÊT PROPRE ET SÉCURISÉ DU SERVEUR
 echo ================================================================
 echo.
 
@@ -15,5 +15,5 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr :5000 ^| findstr LISTENING') 
 )
 
 echo.
-echo [OK] Serveur arrêté. Toutes les données sont enregistrées en sécurité.
+echo [OK] Serveur arrêté avec succès. Toutes vos données restent enregistrées sur le disque.
 timeout /t 3 >nul

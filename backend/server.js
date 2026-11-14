@@ -63,6 +63,43 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Database Physical Storage Health Check
+app.get('/api/health/db-status', (req, res) => {
+  try {
+    const dataDir = path.resolve(__dirname, '../data');
+    const dbFile = path.join(dataDir, 'database.json');
+    const backupFile = path.join(dataDir, 'database.backup.json');
+
+    const dbExists = fs.existsSync(dbFile);
+    const backupExists = fs.existsSync(backupFile);
+
+    const dbStats = dbExists ? fs.statSync(dbFile) : null;
+    const backupStats = backupExists ? fs.statSync(backupFile) : null;
+
+    res.json({
+      status: 'ok',
+      dbFile: {
+        path: dbFile,
+        exists: dbExists,
+        sizeBytes: dbStats ? dbStats.size : 0,
+        lastModified: dbStats ? dbStats.mtime.toISOString() : null
+      },
+      backupFile: {
+        path: backupFile,
+        exists: backupExists,
+        sizeBytes: backupStats ? backupStats.size : 0,
+        lastModified: backupStats ? backupStats.mtime.toISOString() : null
+      },
+      counts: {
+        rubriques: db.getRubriques().length,
+        files: db.getFiles().length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la vérification de la base de données.' });
+  }
+});
+
 // Platform Stats
 app.get('/api/stats', (req, res) => {
   try {

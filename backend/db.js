@@ -322,19 +322,12 @@ class Database {
 
     // 1. Try reading standard DB_FILE
     loadedData = tryLoad(DB_FILE);
-    if (loadedData) source = 'primary';
-
-    // 2. Try interrupted .tmp file
-    const tempPath = `${DB_FILE}.tmp`;
-    if (!loadedData && fs.existsSync(tempPath)) {
-      loadedData = tryLoad(tempPath);
-      if (loadedData) {
-        source = 'temp';
-        console.log('[DB] ✅ Restauration réussie depuis le fichier temporaire non finalisé.');
-      }
+    if (loadedData) {
+      source = 'primary';
+      console.log(`[DB] ✅ Base de données principale chargée (${loadedData.rubriques?.length || 0} rubriques, ${loadedData.files?.length || 0} fichiers).`);
     }
 
-    // 3. Try primary backup file
+    // 2. Try primary backup file
     if (!loadedData && fs.existsSync(BACKUP_FILE)) {
       loadedData = tryLoad(BACKUP_FILE);
       if (loadedData) {
@@ -343,7 +336,7 @@ class Database {
       }
     }
 
-    // 4. Try secondary backup file
+    // 3. Try secondary backup file
     if (!loadedData && fs.existsSync(BAK_FILE)) {
       loadedData = tryLoad(BAK_FILE);
       if (loadedData) {
@@ -518,33 +511,25 @@ class Database {
   save() {
     try {
       const content = JSON.stringify(this.data, null, 2);
+
+      // 1. Direct synchronous write to primary DB file
+      fs.writeFileSync(DB_FILE, content, 'utf8');
+
+      // 2. Direct synchronous mirror to primary persistent backup
+      fs.writeFileSync(BACKUP_FILE, content, 'utf8');
+
+      // 3. Direct synchronous mirror to secondary bak
+      fs.writeFileSync(BAK_FILE, content, 'utf8');
+
+      // Clean up any stale .tmp files if they existed
       const tempPath = `${DB_FILE}.tmp`;
-
-      // 1. Snapshot previous version to secondary backup file
-      if (fs.existsSync(DB_FILE)) {
-        try {
-          fs.copyFileSync(DB_FILE, BAK_FILE);
-        } catch (_) {}
+      if (fs.existsSync(tempPath)) {
+        try { fs.unlinkSync(tempPath); } catch (_) {}
       }
 
-      // 2. Physical flush to temp file
-      try {
-        const fd = fs.openSync(tempPath, 'w');
-        fs.writeSync(fd, content, 0, 'utf8');
-        fs.fsyncSync(fd);
-        fs.closeSync(fd);
-        fs.renameSync(tempPath, DB_FILE);
-      } catch (atomicErr) {
-        // Fallback for Windows file-system locking
-        fs.writeFileSync(DB_FILE, content, 'utf8');
-      }
-
-      // 3. Mirror to primary persistent backup
-      try {
-        fs.writeFileSync(BACKUP_FILE, content, 'utf8');
-      } catch (_) {}
+      console.log(`[DB] 💾 Données enregistrées avec succès sur disque (${this.data.rubriques.length} rubriques, ${this.data.files.length} fichiers).`);
     } catch (err) {
-      console.error('Erreur critique de sauvegarde de la base de données:', err);
+      console.error('[DB] ❌ ERREUR CRITIQUE DE SAUVEGARDE:', err);
     }
   }
 
