@@ -878,6 +878,9 @@ if (fs.existsSync(FRONTEND_DIST)) {
 }
 
 // Start Server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  if (db && typeof db.initPostgres === 'function') {
+    await db.initPostgres();
+  }
   console.log(`🚀 Serveur IT Course Platform démarré sur http://localhost:${PORT}`);
 });

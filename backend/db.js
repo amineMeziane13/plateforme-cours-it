@@ -1,8 +1,18 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import DatabaseConstructor from 'better-sqlite3';
+import { createRequire } from 'module';
+import pg from 'pg';
 import bcrypt from 'bcryptjs';
+
+const require = createRequire(import.meta.url);
+const { Pool } = pg;
+let DatabaseConstructor = null;
+try {
+  DatabaseConstructor = require('better-sqlite3');
+} catch (e) {
+  console.warn('[DB] Module better-sqlite3 non chargé:', e.message);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -263,6 +273,7 @@ function createSampleFileIfNotExists(filename, content) {
 class Database {
   constructor() {
     this.sqlite = null;
+    this.pgPool = null;
     this.data = {
       rubriques: [],
       files: [],
@@ -293,6 +304,10 @@ class Database {
   // RELATIONAL SQLITE ENGINE (ACID & WAL)
   // ==========================================
   initSqlite() {
+    if (!DatabaseConstructor) {
+      console.log('[DB] ℹ️ Module better-sqlite3 non actif sur cet environnement (mode PostgreSQL ou cloud fallback).');
+      return;
+    }
     try {
       this.sqlite = new DatabaseConstructor(SQLITE_FILE);
       // Enable Write-Ahead Logging (WAL) as detailed in Section 3 & 5 of the guide
@@ -621,6 +636,296 @@ class Database {
   }
 
   // ==========================================
+  // RELATIONAL POSTGRESQL ENGINE (CLOUD PERSISTENCE)
+  // ==========================================
+  async initPostgres() {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      return false;
+    }
+    try {
+      console.log('[DB-PG] 🐘 Initialisation du moteur PostgreSQL Cloud (DATABASE_URL détectée)...');
+      this.pgPool = new Pool({
+        connectionString: databaseUrl,
+        ssl: process.env.PG_NO_SSL ? false : { rejectUnauthorized: false }
+      });
+
+      const client = await this.pgPool.connect();
+      console.log('[DB-PG] 🐘 Connecté avec succès à PostgreSQL.');
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS rubriques (
+          id VARCHAR(100) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          icon VARCHAR(50),
+          color VARCHAR(50),
+          badge VARCHAR(100),
+          created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS sous_rubriques (
+          id VARCHAR(100) PRIMARY KEY,
+          rubrique_id VARCHAR(100) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS files (
+          id VARCHAR(100) PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          rubrique_id VARCHAR(100) NOT NULL,
+          sous_rubrique_id VARCHAR(100),
+          description TEXT,
+          level VARCHAR(50),
+          professor VARCHAR(100),
+          tags TEXT,
+          filename VARCHAR(255) NOT NULL,
+          original_name VARCHAR(255) NOT NULL,
+          mime_type VARCHAR(100),
+          size_bytes BIGINT DEFAULT 0,
+          views INT DEFAULT 0,
+          downloads INT DEFAULT 0,
+          downloadable BOOLEAN DEFAULT FALSE,
+          file_content TEXT,
+          created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS group_leaders (
+          id VARCHAR(100) PRIMARY KEY,
+          username VARCHAR(100) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          student_name VARCHAR(150),
+          group_name VARCHAR(150),
+          created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS leader_messages (
+          id VARCHAR(100) PRIMARY KEY,
+          leader_id VARCHAR(100),
+          leader_name VARCHAR(150),
+          group_name VARCHAR(150),
+          subject VARCHAR(255) NOT NULL,
+          content TEXT NOT NULL,
+          reply TEXT,
+          status VARCHAR(50) DEFAULT 'pending',
+          created_at TEXT,
+          replied_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS admin_config (
+          key VARCHAR(100) PRIMARY KEY,
+          value TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS visitors (
+          session_id VARCHAR(150) PRIMARY KEY,
+          last_seen BIGINT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_pg_files_rubrique ON files(rubrique_id);
+        CREATE INDEX IF NOT EXISTS idx_pg_files_sous_rubrique ON files(sous_rubrique_id);
+        CREATE INDEX IF NOT EXISTS idx_pg_sous_rubriques_rubrique ON sous_rubriques(rubrique_id);
+        CREATE INDEX IF NOT EXISTS idx_pg_messages_leader ON leader_messages(leader_id);
+      `);
+      client.release();
+
+      // Check if PG has existing data
+      const { rows: rubRows } = await this.pgPool.query('SELECT * FROM rubriques ORDER BY created_at ASC');
+      if (rubRows && rubRows.length > 0) {
+        console.log(`[DB-PG] 📥 Chargement de ${rubRows.length} rubriques depuis PostgreSQL...`);
+        const { rows: subRows } = await this.pgPool.query('SELECT * FROM sous_rubriques ORDER BY created_at ASC');
+        const { rows: fileRows } = await this.pgPool.query('SELECT * FROM files ORDER BY created_at DESC');
+        const { rows: leaderRows } = await this.pgPool.query('SELECT * FROM group_leaders');
+        const { rows: msgRows } = await this.pgPool.query('SELECT * FROM leader_messages ORDER BY created_at DESC');
+        const { rows: visitorRows } = await this.pgPool.query('SELECT * FROM visitors');
+        const { rows: configRows } = await this.pgPool.query('SELECT * FROM admin_config');
+
+        this.data.rubriques = rubRows.map(r => ({
+          id: r.id,
+          name: r.name,
+          description: r.description || '',
+          icon: r.icon || 'Folder',
+          color: r.color || 'blue',
+          badge: r.badge || 'IT',
+          createdAt: r.created_at,
+          sousRubriques: subRows
+            .filter(s => s.rubrique_id === r.id)
+            .map(s => ({
+              id: s.id,
+              rubriqueId: s.rubrique_id,
+              name: s.name,
+              description: s.description || ''
+            }))
+        }));
+
+        this.data.files = fileRows.map(f => {
+          const filePath = path.join(UPLOADS_DIR, f.filename);
+          if (!fs.existsSync(filePath) && f.file_content) {
+            try {
+              if (f.file_content.startsWith('base64:')) {
+                fs.writeFileSync(filePath, Buffer.from(f.file_content.slice(7), 'base64'));
+              } else {
+                fs.writeFileSync(filePath, f.file_content, 'utf8');
+              }
+            } catch (wErr) {
+              console.warn('[DB-PG] Restauration fichier physique:', wErr.message);
+            }
+          }
+
+          return {
+            id: f.id,
+            title: f.title,
+            rubriqueId: f.rubrique_id,
+            sousRubriqueId: f.sous_rubrique_id || null,
+            description: f.description || '',
+            level: f.level || 'Tous niveaux',
+            professor: f.professor || '',
+            tags: f.tags ? JSON.parse(f.tags) : [],
+            filename: f.filename,
+            originalName: f.original_name,
+            mimeType: f.mime_type || 'application/octet-stream',
+            sizeBytes: Number(f.size_bytes) || 0,
+            views: f.views || 0,
+            downloads: f.downloads || 0,
+            downloadable: Boolean(f.downloadable),
+            createdAt: f.created_at
+          };
+        });
+
+        this.data.groupLeaders = leaderRows.map(l => ({
+          id: l.id,
+          username: l.username,
+          password: l.password,
+          studentName: l.student_name,
+          groupName: l.group_name,
+          createdAt: l.created_at
+        }));
+
+        this.data.messages = msgRows.map(m => ({
+          id: m.id,
+          leaderId: m.leader_id,
+          leaderName: m.leader_name,
+          groupName: m.group_name,
+          subject: m.subject,
+          content: m.content,
+          reply: m.reply,
+          status: m.status,
+          createdAt: m.created_at,
+          repliedAt: m.replied_at
+        }));
+
+        const cfg = configRows.find(c => c.key === 'admin_config');
+        if (cfg && cfg.value) {
+          try { this.data.adminConfig = JSON.parse(cfg.value); } catch (_) {}
+        }
+
+        this.data.visitorCount = visitorRows.length;
+        this.data.lastVisitors = visitorRows.map(v => ({ id: v.session_id, ts: Number(v.last_seen) }));
+
+        console.log(`[DB-PG] ✅ Données chargées avec succès depuis PostgreSQL (${this.data.rubriques.length} rubriques, ${this.data.files.length} fichiers).`);
+      } else {
+        console.log('[DB-PG] 🚀 Base PostgreSQL vide. Migration initiale des données vers PostgreSQL...');
+        await this.persistToPostgres();
+        console.log('[DB-PG] ✅ Migration initiale vers PostgreSQL terminée.');
+      }
+      return true;
+    } catch (err) {
+      console.error('[DB-PG] ❌ Erreur PostgreSQL:', err.message);
+      return false;
+    }
+  }
+
+  async persistToPostgres() {
+    if (!this.pgPool) return;
+    try {
+      const client = await this.pgPool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('DELETE FROM files; DELETE FROM sous_rubriques; DELETE FROM rubriques;');
+        await client.query('DELETE FROM group_leaders; DELETE FROM leader_messages; DELETE FROM admin_config;');
+
+        for (const rub of this.data.rubriques || []) {
+          await client.query(
+            'INSERT INTO rubriques (id, name, description, icon, color, badge, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+            [rub.id, rub.name, rub.description || '', rub.icon || 'Folder', rub.color || 'blue', rub.badge || 'IT', rub.createdAt || new Date().toISOString()]
+          );
+          for (const sub of rub.sousRubriques || []) {
+            await client.query(
+              'INSERT INTO sous_rubriques (id, rubrique_id, name, description, created_at) VALUES ($1, $2, $3, $4, $5)',
+              [sub.id, rub.id, sub.name, sub.description || '', new Date().toISOString()]
+            );
+          }
+        }
+
+        for (const file of this.data.files || []) {
+          let fileContent = '';
+          const physicalPath = path.join(UPLOADS_DIR, file.filename);
+          if (fs.existsSync(physicalPath)) {
+            try {
+              const isText = file.mimeType?.startsWith('text/') || ['text/markdown', 'application/javascript', 'application/typescript', 'application/json', 'text/x-shellscript', 'text/yaml'].includes(file.mimeType);
+              if (isText) {
+                fileContent = fs.readFileSync(physicalPath, 'utf8');
+              } else {
+                fileContent = 'base64:' + fs.readFileSync(physicalPath).toString('base64');
+              }
+            } catch (_) {}
+          }
+
+          await client.query(
+            `INSERT INTO files (id, title, rubrique_id, sous_rubrique_id, description, level, professor, tags, filename, original_name, mime_type, size_bytes, views, downloads, downloadable, file_content, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+            [
+              file.id, file.title, file.rubriqueId, file.sousRubriqueId || null, file.description || '',
+              file.level || 'Tous niveaux', file.professor || '', JSON.stringify(file.tags || []),
+              file.filename, file.originalName, file.mimeType || 'application/octet-stream',
+              file.sizeBytes || 0, file.views || 0, file.downloads || 0, Boolean(file.downloadable),
+              fileContent, file.createdAt || new Date().toISOString()
+            ]
+          );
+        }
+
+        for (const lead of this.data.groupLeaders || []) {
+          await client.query(
+            'INSERT INTO group_leaders (id, username, password, student_name, group_name, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+            [lead.id, lead.username, lead.password, lead.studentName || '', lead.groupName || '', lead.createdAt || new Date().toISOString()]
+          );
+        }
+
+        for (const msg of this.data.messages || []) {
+          await client.query(
+            'INSERT INTO leader_messages (id, leader_id, leader_name, group_name, subject, content, reply, status, created_at, replied_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+            [msg.id, msg.leaderId || null, msg.leaderName || null, msg.groupName || null, msg.subject, msg.content, msg.reply || null, msg.status || 'pending', msg.createdAt || new Date().toISOString(), msg.repliedAt || null]
+          );
+        }
+
+        await client.query(
+          'INSERT INTO admin_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+          ['admin_config', JSON.stringify(this.data.adminConfig || {})]
+        );
+
+        for (const v of this.data.lastVisitors || []) {
+          await client.query(
+            'INSERT INTO visitors (session_id, last_seen) VALUES ($1, $2) ON CONFLICT (session_id) DO UPDATE SET last_seen = $2',
+            [v.id, v.ts || Date.now()]
+          );
+        }
+
+        await client.query('COMMIT');
+        console.log(`[DB-PG] 💾 Synchronisation PostgreSQL réussie (${this.data.rubriques.length} rubriques, ${this.data.files.length} fichiers).`);
+      } catch (txErr) {
+        await client.query('ROLLBACK');
+        throw txErr;
+      } finally {
+        client.release();
+      }
+    } catch (err) {
+      console.error('[DB-PG] ❌ Erreur écriture PostgreSQL:', err.message);
+    }
+  }
+
+  // ==========================================
   // INITIALIZATION & MULTI-TIER RECOVERY
   // ==========================================
   init() {
@@ -757,6 +1062,13 @@ class Database {
       fs.writeFileSync(BAK_FILE, content, 'utf8');
 
       console.log(`[DB] 💾 Données persistées (SQLite WAL + Miroir Disque) : ${this.data.rubriques.length} rubriques, ${this.data.files.length} fichiers.`);
+
+      // 3. Persist to PostgreSQL if connected (Cloud database)
+      if (this.pgPool) {
+        this.persistToPostgres().catch(err => {
+          console.error('[DB-PG] ❌ Erreur écriture asynchrone PostgreSQL:', err.message);
+        });
+      }
     } catch (err) {
       console.error('[DB] ❌ ERREUR CRITIQUE DE PERSISTANCE:', err);
     }

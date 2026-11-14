@@ -335,6 +335,18 @@
   ],
   "messages": [
     {
+      "id": "msg-1794694179629-eocd",
+      "leaderId": "lead-1794694179595-uo34",
+      "leaderName": "Karim Hadj",
+      "groupName": "Groupe Master IT",
+      "subject": "Question sur le TP Stockage",
+      "content": "Bonjour Dr. Meziane, le support de cours WAL est-il inclus dans l'examen ?",
+      "reply": "Bonjour Karim. Oui, la persistance WAL et ACID est un point fondamental.",
+      "status": "replied",
+      "createdAt": "2026-11-14T22:09:39.629Z",
+      "repliedAt": "2026-11-14T22:09:39.656Z"
+    },
+    {
       "id": "msg-1794693743017-9t1g",
       "leaderId": "lead-1794693742982-bt2g",
       "leaderName": "Karim Hadj",
