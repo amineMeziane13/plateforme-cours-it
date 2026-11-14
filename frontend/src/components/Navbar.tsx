@@ -76,17 +76,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           </div>
 
-          {/* Central Live Protection Status (Center Navigation) */}
-          <div className="hidden lg:flex items-center space-x-2">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-xs font-mono shadow-xs backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shadow-[0_0_6px_#10b981]" />
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-slate-700 dark:text-slate-200 font-semibold">
-                Protection Anti-Capture & WAL Active
-              </span>
-            </div>
-          </div>
-
           {/* Actions & Interactive Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             

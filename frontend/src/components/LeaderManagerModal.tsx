@@ -29,7 +29,7 @@ export const LeaderManagerModal: React.FC<LeaderManagerModalProps> = ({
   onClose,
   onToast
 }) => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'messages'>('messages');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'messages'>('accounts');
   
   // Accounts state
   const [leaders, setLeaders] = useState<GroupLeader[]>([]);
@@ -92,12 +92,12 @@ export const LeaderManagerModal: React.FC<LeaderManagerModalProps> = ({
         studentName: studentName.trim(),
         groupName: groupName.trim()
       });
-      setLeaders([res.leader, ...leaders]);
+      await loadLeaders();
       setUsername('');
       setPassword('');
       setStudentName('');
       setGroupName('');
-      onToast('success', 'Compte créé', `Le compte pour ${res.leader.studentName} a été créé avec succès.`);
+      onToast('success', 'Compte créé & Enregistré', `Le compte de délégué pour ${res.leader?.studentName || studentName} a été persisté dans la base.`);
     } catch (err: any) {
       onToast('error', 'Erreur de création', err.message || 'Impossible de créer le compte.');
     } finally {
@@ -112,8 +112,8 @@ export const LeaderManagerModal: React.FC<LeaderManagerModalProps> = ({
 
     try {
       await api.deleteAdminLeader(id);
-      setLeaders(leaders.filter(l => l.id !== id));
-      onToast('success', 'Compte supprimé', `Le compte de ${name} a été révoqué.`);
+      await loadLeaders();
+      onToast('success', 'Compte révoqué', `Le compte de ${name} a été supprimé de la base de données.`);
     } catch (err: any) {
       onToast('error', 'Erreur de suppression', err.message || 'Impossible de supprimer ce compte.');
     }

@@ -259,11 +259,6 @@ export const WelcomeAvatar: React.FC<WelcomeAvatarProps> = ({ visitorCount = 0 }
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
             <span>Assistant 3D • {greeting}</span>
           </div>
-
-          <span className="inline-flex items-center space-x-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-            <ShieldCheck className="w-3 h-3 text-emerald-500" />
-            <span>Sécurisé</span>
-          </span>
         </div>
 
         {/* Portal Title & Professor Reference */}

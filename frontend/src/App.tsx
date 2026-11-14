@@ -233,6 +233,15 @@ export function App() {
           onOpenUpload={() => setIsUploadOpen(true)}
         />
 
+        {/* Interactive 3D Academic Book Menu */}
+        <RubriquesBar
+          rubriques={rubriques}
+          selectedRubriqueId={filters.rubriqueId}
+          onSelectRubrique={handleSelectRubrique}
+          isAdmin={isAdmin}
+          onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
+        />
+
         {/* Dynamic Display:
             1. If filters.rubriqueId === 'all' AND no search:
                Display large RubriquesGrid (the large 3D icon cards for each category)
@@ -247,29 +256,17 @@ export function App() {
             onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
           />
         ) : (
-          <>
-            {/* Rubriques Selector Bar for quick switching */}
-            <RubriquesBar
-              rubriques={rubriques}
-              selectedRubriqueId={filters.rubriqueId}
-              onSelectRubrique={handleSelectRubrique}
-              isAdmin={isAdmin}
-              onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
-            />
-
-            {/* File Grid & Filtering */}
-            <FileList
-              files={files}
-              rubriques={rubriques}
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              isAdmin={isAdmin}
-              onPreview={handleOpenReader}
-              onEdit={handleOpenEdit}
-              onDelete={handleOpenDelete}
-              onOpenUpload={() => setIsUploadOpen(true)}
-            />
-          </>
+          <FileList
+            files={files}
+            rubriques={rubriques}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            isAdmin={isAdmin}
+            onPreview={handleOpenReader}
+            onEdit={handleOpenEdit}
+            onDelete={handleOpenDelete}
+            onOpenUpload={() => setIsUploadOpen(true)}
+          />
         )}
 
       </main>

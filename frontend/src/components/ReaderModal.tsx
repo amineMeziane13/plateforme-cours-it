@@ -307,12 +307,8 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                   {file.rubriqueName || 'Support de Cours'}
                 </span>
                 <span className="text-xs opacity-40">•</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold ${
-                  file.downloadable 
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
-                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                }`}>
-                  {file.downloadable ? 'Téléchargeable' : 'Mode Lecture Protégé'}
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                  {file.level || 'Tous niveaux'}
                 </span>
               </div>
               <h2 className="text-sm sm:text-base font-bold truncate max-w-md lg:max-w-xl">
@@ -430,19 +426,6 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               </div>
             )}
 
-            {/* Direct Download Button (if file is downloadable) */}
-            {file.downloadable && (
-              <a
-                href={`/api/files/${file.id}/download`}
-                download={file.originalName}
-                className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 font-bold hover:bg-emerald-100 transition-all shadow-xs"
-                title="Télécharger ce fichier sur votre appareil"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Télécharger</span>
-              </a>
-            )}
-
             {/* Themes Switcher */}
             <div className="flex items-center space-x-1 px-1 py-0.5 rounded-lg bg-black/5 dark:bg-white/10 border border-inherit">
               <button
@@ -489,29 +472,26 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           </div>
         </header>
 
-        {/* Anti-Screenshot Active Shield Overlay */}
-        {isShieldActive && (
+        {/* Discreet Silent Security Shield on Loss of Focus / Window Blur */}
+        {isShieldActive && !file.downloadable && (
           <div 
             onClick={() => setIsShieldActive(false)}
             className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-3xl p-6 text-center select-none cursor-pointer animate-fade-in"
           >
-            <div className="w-20 h-20 rounded-3xl bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center mb-5 shadow-2xl shadow-amber-500/20 animate-bounce">
-              <ShieldAlert className="w-10 h-10 text-amber-400" />
+            <div className="w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mb-4">
+              <BookOpen className="w-8 h-8 text-cyan-400" />
             </div>
-            <h3 className="text-xl font-black text-white font-mono tracking-wider mb-2">
-              🛡️ PROTECTION INTELLECTUELLE ACTIVE
+            <h3 className="text-base font-bold text-white font-mono mb-2">
+              Consultation en pause
             </h3>
-            <p className="text-sm font-medium text-slate-300 max-w-lg mb-2 leading-relaxed">
-              Capture d'écran, perte de focus ou tentative de copie détectée.
-            </p>
-            <p className="text-xs text-amber-300/90 font-mono max-w-md mb-6">
-              Ce cours est la propriété pédagogique exclusive du <span className="font-bold underline">Dr. M.A. Meziane</span>. Tout enregistrement ou capture est verrouillé.
+            <p className="text-xs text-slate-400 max-w-sm mb-4">
+              Cliquez dans la fenêtre pour reprendre la lecture.
             </p>
             <button
               onClick={(e) => { e.stopPropagation(); setIsShieldActive(false); }}
-              className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 hover:from-blue-500 hover:to-cyan-400 transition-all active:scale-95"
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-95"
             >
-              <span>Reprendre la lecture sécurisée</span>
+              Reprendre la lecture
             </button>
           </div>
         )}
@@ -593,23 +573,9 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                     {file.description}
                   </p>
                 )}
-                {file.downloadable ? (
-                  <div className="pt-2">
-                    <a
-                      href={`/api/files/${file.id}/download`}
-                      download={file.originalName}
-                      className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all active:scale-95"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Télécharger le paquet complet ({formatSize(file.sizeBytes)})</span>
-                    </a>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs">
-                    <Lock className="w-4 h-4" />
-                    <span>Téléchargement restreint par l'enseignant</span>
-                  </div>
-                )}
+                <div className="pt-2 text-xs opacity-70 font-mono">
+                  <span>Visionneuse intégrée — Consultation en ligne</span>
+                </div>
               </div>
             ) : (
               /* Text / Code / Markdown Viewer - Full document scrolling with line numbers */
