@@ -9,4 +9,7 @@ data/*.tmp
 data/*.bak.json
 data/*.corrupted*.json
 data/*.pre-import*.json
+data/*.db-wal
+data/*.db-shm
+data/*.db
 
