@@ -3,6 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './db.js';
@@ -132,6 +133,87 @@ app.post('/api/auth/request-dynamic-login', async (req, res) => {
   }
 });
 
+// ==========================================
+// ADMINISTRATOR AUTHENTICATION & SESSION SYSTEM
+// ==========================================
+// In-Memory active admin sessions with sliding-window expiration (2 hours)
+const activeAdminSessions = new Map();
+const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+export function generateAdminToken() {
+  return 'adm_' + crypto.randomBytes(32).toString('hex');
+}
+
+export function registerAdminSession(user) {
+  const token = generateAdminToken();
+  const now = Date.now();
+  activeAdminSessions.set(token, {
+    token,
+    user,
+    createdAt: now,
+    lastSeenAt: now,
+    expiresAt: now + SESSION_TTL_MS
+  });
+  return token;
+}
+
+export function validateAdminToken(authHeader) {
+  if (!authHeader) return null;
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader.trim();
+  if (!token) return null;
+
+  const session = activeAdminSessions.get(token);
+  if (!session) return null;
+
+  const now = Date.now();
+  if (now > session.expiresAt) {
+    activeAdminSessions.delete(token);
+    return null;
+  }
+
+  // Refresh sliding expiration on activity
+  session.lastSeenAt = now;
+  session.expiresAt = now + SESSION_TTL_MS;
+  return session;
+}
+
+export function revokeAdminToken(authHeader) {
+  if (!authHeader) return false;
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader.trim();
+  return activeAdminSessions.delete(token);
+}
+
+// Periodic cleanup of expired sessions every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of activeAdminSessions.entries()) {
+    if (now > session.expiresAt) {
+      activeAdminSessions.delete(token);
+    }
+  }
+}, 10 * 60 * 1000);
+
+// Middleware: Strictly require an active authenticated Admin session
+export function requireAdmin(req, res, next) {
+  const authHeader = req.headers.authorization || req.headers['x-admin-token'];
+  if (!authHeader) {
+    return res.status(401).json({
+      error: 'Accès refusé. Session administrateur requise.'
+    });
+  }
+
+  const session = validateAdminToken(authHeader);
+  if (!session) {
+    return res.status(401).json({
+      error: 'Session administrateur invalide ou expirée. Veuillez vous reconnecter.'
+    });
+  }
+
+  req.adminUser = session.user;
+  req.adminToken = session.token;
+  next();
+}
+
 // Admin Authentication (Dynamic Credentials & Master Password)
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
@@ -145,30 +227,34 @@ app.post('/api/auth/login', (req, res) => {
   // 1. Check dynamic temporary credentials sent to amine.blackline@gmail.com
   const dynamicCheck = verifyDynamicCredentials(cleanUser, cleanPass);
   if (dynamicCheck.valid) {
+    const userPayload = { 
+      username: username.trim(), 
+      role: 'ADMINISTRATEUR',
+      email: ADMIN_EMAIL,
+      authType: 'DYNAMIC_EMAIL_OTP'
+    };
+    const token = registerAdminSession(userPayload);
     return res.json({
       success: true,
-      token: 'admin-dynamic-token-' + Date.now(),
-      user: { 
-        username: username, 
-        role: 'ADMINISTRATEUR',
-        email: ADMIN_EMAIL,
-        authType: 'DYNAMIC_EMAIL_OTP'
-      }
+      token,
+      user: userPayload
     });
   }
 
   // 2. Master administrator password for Amine (secure, never prefilled, checked against DB or env)
   if (db.verifyMasterAdmin(cleanUser, cleanPass)) {
     const adminConfig = db.getAdminConfig();
+    const userPayload = { 
+      username: adminConfig.username || 'amine', 
+      role: 'ADMINISTRATEUR',
+      email: adminConfig.email || ADMIN_EMAIL,
+      authType: 'MASTER'
+    };
+    const token = registerAdminSession(userPayload);
     return res.json({
       success: true,
-      token: 'admin-master-token-' + Date.now(),
-      user: { 
-        username: adminConfig.username || 'amine', 
-        role: 'ADMINISTRATEUR',
-        email: adminConfig.email || ADMIN_EMAIL,
-        authType: 'MASTER'
-      }
+      token,
+      user: userPayload
     });
   }
 
@@ -177,11 +263,31 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// Admin Settings: get configuration (masked password)
-app.get('/api/admin/settings', (req, res) => {
-  const token = req.headers.authorization;
-  if (!token) return res.status(401).json({ error: 'Non autorisé.' });
+// Admin Session Verification
+app.get('/api/auth/verify-admin', (req, res) => {
+  const authHeader = req.headers.authorization || req.headers['x-admin-token'];
+  const session = validateAdminToken(authHeader);
+  if (!session) {
+    return res.status(401).json({ valid: false, error: 'Session invalide ou expirée.' });
+  }
+  res.json({
+    valid: true,
+    user: session.user,
+    expiresAt: session.expiresAt
+  });
+});
 
+// Admin Logout / Session Revocation
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers.authorization || req.headers['x-admin-token'];
+  if (authHeader) {
+    revokeAdminToken(authHeader);
+  }
+  res.json({ success: true, message: 'Session administrateur fermée.' });
+});
+
+// Admin Settings: get configuration (masked password)
+app.get('/api/admin/settings', requireAdmin, (req, res) => {
   const config = db.getAdminConfig();
   res.json({
     username: config.username || 'amine',
@@ -195,10 +301,7 @@ app.get('/api/admin/settings', (req, res) => {
 });
 
 // Admin Settings: update configuration directly in database.json
-app.put('/api/admin/settings', (req, res) => {
-  const token = req.headers.authorization;
-  if (!token) return res.status(401).json({ error: 'Non autorisé.' });
-
+app.put('/api/admin/settings', requireAdmin, (req, res) => {
   const { email, smtpPass, masterPassword } = req.body;
   const updates = {};
   if (email) updates.email = email.trim();
@@ -240,7 +343,7 @@ app.get('/api/rubriques', (req, res) => {
 });
 
 // Create new rubrique (Admin)
-app.post('/api/rubriques', (req, res) => {
+app.post('/api/rubriques', requireAdmin, (req, res) => {
   try {
     const { name, description, icon, color, badge } = req.body;
     if (!name || name.trim() === '') {
@@ -255,7 +358,7 @@ app.post('/api/rubriques', (req, res) => {
 });
 
 // Update rubrique (Admin)
-app.put('/api/rubriques/:id', (req, res) => {
+app.put('/api/rubriques/:id', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, icon, color, badge } = req.body;
@@ -270,7 +373,7 @@ app.put('/api/rubriques/:id', (req, res) => {
 });
 
 // Delete rubrique (Admin)
-app.delete('/api/rubriques/:id', (req, res) => {
+app.delete('/api/rubriques/:id', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const deleted = db.deleteRubrique(id);
@@ -284,7 +387,7 @@ app.delete('/api/rubriques/:id', (req, res) => {
 });
 
 // Add sous-rubrique (Admin)
-app.post('/api/rubriques/:id/sous-rubriques', (req, res) => {
+app.post('/api/rubriques/:id/sous-rubriques', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
@@ -299,7 +402,7 @@ app.post('/api/rubriques/:id/sous-rubriques', (req, res) => {
 });
 
 // Delete sous-rubrique (Admin)
-app.delete('/api/rubriques/:id/sous-rubriques/:subId', (req, res) => {
+app.delete('/api/rubriques/:id/sous-rubriques/:subId', requireAdmin, (req, res) => {
   try {
     const { id, subId } = req.params;
     const deleted = db.deleteSousRubrique(id, subId);
@@ -355,12 +458,12 @@ app.post('/api/leaders/messages', (req, res) => {
 });
 
 // Admin Get Group Leaders
-app.get('/api/admin/leaders', (req, res) => {
+app.get('/api/admin/leaders', requireAdmin, (req, res) => {
   res.json(db.getGroupLeaders());
 });
 
 // Admin Create Group Leader
-app.post('/api/admin/leaders', (req, res) => {
+app.post('/api/admin/leaders', requireAdmin, (req, res) => {
   try {
     const { username, password, studentName, groupName } = req.body;
     const created = db.createGroupLeader({ username, password, studentName, groupName });
@@ -371,19 +474,19 @@ app.post('/api/admin/leaders', (req, res) => {
 });
 
 // Admin Delete Group Leader
-app.delete('/api/admin/leaders/:id', (req, res) => {
+app.delete('/api/admin/leaders/:id', requireAdmin, (req, res) => {
   const success = db.deleteGroupLeader(req.params.id);
   if (!success) return res.status(404).json({ error: 'Responsable introuvable.' });
   res.json({ success: true });
 });
 
 // Admin Get All Messages from Leaders
-app.get('/api/admin/messages', (req, res) => {
+app.get('/api/admin/messages', requireAdmin, (req, res) => {
   res.json(db.getMessages());
 });
 
 // Admin Reply Message
-app.post('/api/admin/messages/:id/reply', (req, res) => {
+app.post('/api/admin/messages/:id/reply', requireAdmin, (req, res) => {
   const { reply } = req.body;
   if (!reply || !reply.trim()) {
     return res.status(400).json({ error: 'Réponse vide.' });
@@ -394,18 +497,18 @@ app.post('/api/admin/messages/:id/reply', (req, res) => {
 });
 
 // Admin Backup Database
-app.get('/api/admin/database/backup', (req, res) => {
+app.get('/api/admin/database/backup', requireAdmin, (req, res) => {
   try {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="database-backup-${Date.now()}.json"`);
-    res.send(JSON.stringify(db.data, null, 2));
+    res.send(db.exportDatabase());
   } catch (error) {
     res.status(500).json({ error: 'Erreur lors de la sauvegarde.' });
   }
 });
 
 // Admin Restore Database
-app.post('/api/admin/database/restore', (req, res) => {
+app.post('/api/admin/database/restore', requireAdmin, (req, res) => {
   try {
     const backupData = req.body;
     if (!backupData || !backupData.rubriques || !backupData.files) {
@@ -447,8 +550,8 @@ app.get('/api/files/:id', (req, res) => {
   }
 });
 
-// Create/Upload new file under a rubrique
-app.post('/api/files', upload.single('file'), (req, res) => {
+// Create/Upload new file under a rubrique (Admin)
+app.post('/api/files', requireAdmin, upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Veuillez sélectionner un fichier à déposer.' });
@@ -502,8 +605,8 @@ app.post('/api/files', upload.single('file'), (req, res) => {
   }
 });
 
-// Update/Modify file metadata (and optionally replace attached document)
-app.put('/api/files/:id', upload.single('file'), (req, res) => {
+// Update/Modify file metadata (and optionally replace attached document) (Admin)
+app.put('/api/files/:id', requireAdmin, upload.single('file'), (req, res) => {
   try {
     const { id } = req.params;
     const existing = db.getFileById(id);
@@ -547,8 +650,8 @@ app.put('/api/files/:id', upload.single('file'), (req, res) => {
   }
 });
 
-// Delete file
-app.delete('/api/files/:id', (req, res) => {
+// Delete file (Admin)
+app.delete('/api/files/:id', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const success = db.deleteFile(id);
@@ -723,8 +826,8 @@ app.post('/api/visitors/ping', (req, res) => {
 // DATABASE BACKUP & RESTORATION (Admin)
 // ==========================================
 
-// Export full database as a JSON backup file
-app.get('/api/admin/database/export', (req, res) => {
+// Export full database as a JSON backup file (Admin)
+app.get('/api/admin/database/export', requireAdmin, (req, res) => {
   try {
     const backupJson = db.exportDatabase();
     const dateStr = new Date().toISOString().slice(0, 10);
@@ -736,8 +839,8 @@ app.get('/api/admin/database/export', (req, res) => {
   }
 });
 
-// Import full database from JSON payload
-app.post('/api/admin/database/import', (req, res) => {
+// Import full database from JSON payload (Admin)
+app.post('/api/admin/database/import', requireAdmin, (req, res) => {
   try {
     const payload = req.body;
     if (!payload || !payload.rubriques) {

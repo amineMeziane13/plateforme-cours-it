@@ -14,6 +14,7 @@ import {
   Lock
 } from 'lucide-react';
 import { Rubrique } from '../types';
+import { api } from '../api';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -126,15 +127,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
       formData.append('tags', tags.trim());
       formData.append('downloadable', String(isDownloadable));
 
-      const res = await fetch('/api/files', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Erreur lors du dépôt du fichier.');
-      }
+      await api.uploadFile(formData);
 
       showToast('success', 'Fichier publié !', `Le cours "${title}" a été ajouté avec succès sous la rubrique sélectionnée.`);
       onUploadSuccess();

@@ -1017,7 +1017,19 @@ class Database {
 
   // EXPORT / IMPORT DATABASE (Backup & Restore)
   exportDatabase() {
-    return JSON.stringify(this.data, null, 2);
+    const clone = JSON.parse(JSON.stringify(this.data));
+    if (clone.adminConfig) {
+      if (clone.adminConfig.masterPassword) {
+        clone.adminConfig.masterPassword = '[PROTECTED]';
+      }
+      if (clone.adminConfig.smtp && clone.adminConfig.smtp.pass) {
+        clone.adminConfig.smtp.pass = '[PROTECTED]';
+      }
+    }
+    if (Array.isArray(clone.groupLeaders)) {
+      clone.groupLeaders = clone.groupLeaders.map(({ password, ...rest }) => rest);
+    }
+    return JSON.stringify(clone, null, 2);
   }
 
   importDatabase(imported) {
@@ -1033,6 +1045,19 @@ class Database {
       const safetyBackup = path.join(DATA_DIR, `database.pre-import-${Date.now()}.json`);
       fs.writeFileSync(safetyBackup, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (_) {}
+
+    // Preserve existing adminConfig secrets if imported copy has [PROTECTED]
+    const currentAdmin = this.data.adminConfig || {};
+    const importedAdmin = imported.adminConfig || {};
+    if (!importedAdmin.masterPassword || importedAdmin.masterPassword === '[PROTECTED]') {
+      importedAdmin.masterPassword = currentAdmin.masterPassword || 'AmineAdmin2026!';
+    }
+    if (!importedAdmin.smtp?.pass || importedAdmin.smtp?.pass === '[PROTECTED]') {
+      if (importedAdmin.smtp) {
+        importedAdmin.smtp.pass = currentAdmin.smtp?.pass || '';
+      }
+    }
+    imported.adminConfig = importedAdmin;
 
     this.data = {
       ...this.data,

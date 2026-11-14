@@ -28,9 +28,8 @@ export function App() {
   const [rubriques, setRubriques] = useState<Rubrique[]>([]);
   const [files, setFiles] = useState<CourseFile[]>([]);
   const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    return !!localStorage.getItem('it_platform_admin_token');
-  });
+  // Admin session state: MUST ALWAYS start as false for students & shared links
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   // Theme state: default to 'light' (white theme) as requested
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -119,10 +118,35 @@ export function App() {
     }
   }, [filters, showToast]);
 
-  // Initial Load & Visitor Ping
+  // Initial Load, Visitor Ping & Secure Admin Session Check
   useEffect(() => {
     loadRubriques();
     loadStats();
+
+    // Verify if an existing admin session is truly active and valid on backend
+    const token = api.getAdminToken();
+    if (token) {
+      api.verifyAdminToken(token).then((res) => {
+        if (res.valid) {
+          setIsAdmin(true);
+        } else {
+          api.clearAdminToken();
+          setIsAdmin(false);
+        }
+      }).catch(() => {
+        api.clearAdminToken();
+        setIsAdmin(false);
+      });
+    } else {
+      setIsAdmin(false);
+    }
+
+    // Auto-logout if an admin API call returns 401 Unauthorized
+    const onUnauthorized = () => {
+      setIsAdmin(false);
+      showToast('error', 'Session expirée', 'Votre session administrateur a expiré. Vous êtes repassé en mode consultation étudiante.');
+    };
+    window.addEventListener('it_admin_unauthorized', onUnauthorized);
 
     // Session identification for unique visitor counter
     let sid = localStorage.getItem('it_visitor_session_id');
@@ -135,7 +159,11 @@ export function App() {
         setStats((prev) => prev ? { ...prev, visitorCount: res.count } : null);
       }
     });
-  }, [loadRubriques, loadStats]);
+
+    return () => {
+      window.removeEventListener('it_admin_unauthorized', onUnauthorized);
+    };
+  }, [loadRubriques, loadStats, showToast]);
 
   useEffect(() => {
     loadFiles();
@@ -165,8 +193,8 @@ export function App() {
     setIsReaderOpen(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('it_platform_admin_token');
+  const handleLogout = async () => {
+    await api.logoutAdmin();
     setIsAdmin(false);
     showToast('info', 'Déconnexion', 'Vous êtes repassé en mode consultation étudiante.');
   };

@@ -81,15 +81,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password: password.trim() })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Identifiants incorrects.');
+      const data = await api.loginAdmin(username.trim(), password.trim());
+      api.setAdminToken(data.token);
 
-      localStorage.setItem('it_platform_admin_token', data.token);
       showToast(
         'success', 
         'Connexion Réussie', 

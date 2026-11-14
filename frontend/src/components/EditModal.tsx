@@ -14,6 +14,7 @@ import {
   Lock
 } from 'lucide-react';
 import { CourseFile, Rubrique } from '../types';
+import { api } from '../api';
 
 interface EditModalProps {
   isOpen: boolean;
@@ -93,15 +94,7 @@ export const EditModal: React.FC<EditModalProps> = ({
         formData.append('file', newFile);
       }
 
-      const res = await fetch(`/api/files/${file.id}`, {
-        method: 'PUT',
-        body: formData
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Erreur lors de la modification du fichier.');
-      }
+      await api.updateFile(file.id, formData);
 
       showToast('success', 'Fichier mis à jour', `Le cours "${title}" a été modifié avec succès.`);
       onEditSuccess();

@@ -62,14 +62,7 @@ export const RubriquesManagerModal: React.FC<RubriquesManagerModalProps> = ({
     }
 
     try {
-      const res = await fetch('/api/rubriques', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, icon, color, badge })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
+      await api.createRubrique({ name, description, icon, color, badge });
       showToast('success', 'Rubrique créée', `La rubrique "${name}" a été ajoutée.`);
       setName('');
       setDescription('');
@@ -119,12 +112,7 @@ export const RubriquesManagerModal: React.FC<RubriquesManagerModalProps> = ({
     if (!window.confirm(`Supprimer la rubrique "${rub.name}" et ses sous-rubriques éventuelles ?`)) return;
 
     try {
-      const res = await fetch(`/api/rubriques/${rub.id}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
+      await api.deleteRubrique(rub.id);
       showToast('success', 'Rubrique supprimée', `La rubrique "${rub.name}" a été supprimée.`);
       onRefresh();
     } catch (err: any) {

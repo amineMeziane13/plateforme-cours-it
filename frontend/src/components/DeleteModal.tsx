@@ -6,6 +6,7 @@ import {
   FileText
 } from 'lucide-react';
 import { CourseFile } from '../types';
+import { api } from '../api';
 
 interface DeleteModalProps {
   isOpen: boolean;
@@ -29,13 +30,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/files/${file.id}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Erreur lors de la suppression.');
-      }
+      await api.deleteFile(file.id);
 
       showToast('success', 'Fichier supprimé', `Le fichier "${file.title}" a été définitivement supprimé.`);
       onDeleteSuccess();

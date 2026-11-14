@@ -16,17 +16,28 @@ async function runTests() {
 
   const BASE_URL = 'http://127.0.0.1:5000';
 
-  // 1. Contrôle de santé
+  // 1. Contrôle de santé et Authentification Admin
   console.log('[ÉTAPE 1/6] Vérification du serveur et de l\'API...');
   const healthRes = await fetch(`${BASE_URL}/api/health`);
   if (!healthRes.ok) throw new Error('Le serveur ne répond pas.');
-  console.log('  -> ✅ Serveur opérationnel (HTTP 200)\n');
+  console.log('  -> ✅ Serveur opérationnel (HTTP 200)');
+
+  const loginRes = await fetch(`${BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'amine', password: 'AmineAdmin2026!' })
+  });
+  const loginData = await loginRes.json();
+  if (!loginRes.ok || !loginData.token) throw new Error('Échec de la connexion administrateur pour le test.');
+  const adminToken = loginData.token;
+  const authHeaders = { 'Authorization': `Bearer ${adminToken}` };
+  console.log('  -> ✅ Authentification Enseignant validée (Jeton actif)\n');
 
   // 2. Création d\'une catégorie
   console.log('[ÉTAPE 2/6] Création d\'une rubrique (POST /api/rubriques)...');
   const createRubRes = await fetch(`${BASE_URL}/api/rubriques`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     body: JSON.stringify({
       name: 'Rubrique Test Persistance Automatisée',
       description: 'Catégorie créée pour valider le stockage physique permanent sur disque',
@@ -54,7 +65,7 @@ async function runTests() {
   const newRubName = 'Rubrique Test MODIFIÉE AVEC SUCCÈS';
   const updateRubRes = await fetch(`${BASE_URL}/api/rubriques/${createdRub.id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     body: JSON.stringify({
       name: newRubName,
       description: 'Description mise à jour et confirmée',
@@ -89,6 +100,7 @@ async function runTests() {
 
   const uploadRes = await fetch(`${BASE_URL}/api/files`, {
     method: 'POST',
+    headers: { ...authHeaders },
     body: formData
   });
   const uploadedFile = await uploadRes.json();
@@ -119,6 +131,7 @@ async function runTests() {
 
   const updateFileRes = await fetch(`${BASE_URL}/api/files/${uploadedFile.id}`, {
     method: 'PUT',
+    headers: { ...authHeaders },
     body: updateFileFormData
   });
   const updatedFile = await updateFileRes.json();
@@ -134,8 +147,8 @@ async function runTests() {
 
   // 6. Nettoyage et vérification de la suppression
   console.log('[ÉTAPE 6/6] Nettoyage et test de suppression (DELETE)...');
-  await fetch(`${BASE_URL}/api/files/${uploadedFile.id}`, { method: 'DELETE' });
-  await fetch(`${BASE_URL}/api/rubriques/${createdRub.id}`, { method: 'DELETE' });
+  await fetch(`${BASE_URL}/api/files/${uploadedFile.id}`, { method: 'DELETE', headers: { ...authHeaders } });
+  await fetch(`${BASE_URL}/api/rubriques/${createdRub.id}`, { method: 'DELETE', headers: { ...authHeaders } });
 
   const diskFinal = JSON.parse(fs.readFileSync('data/database.json', 'utf8'));
   const fileStillPresent = diskFinal.files.some(f => f.id === uploadedFile.id);
