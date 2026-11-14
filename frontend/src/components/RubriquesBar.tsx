@@ -32,7 +32,7 @@ export const RubriquesBar: React.FC<RubriquesBarProps> = ({
 }) => {
   // Dynamic icon helper
   const renderIcon = (iconName: string) => {
-    const props = { className: "w-4 h-4" };
+    const props = { className: "w-4 h-4 transition-transform group-hover:scale-110" };
     switch (iconName) {
       case 'ShieldAlert':
         return <ShieldAlert {...props} />;
@@ -58,14 +58,16 @@ export const RubriquesBar: React.FC<RubriquesBarProps> = ({
   const totalFilesAll = rubriques.reduce((acc, r) => acc + (r.filesCount || 0), 0);
 
   return (
-    <div className="py-5 border-b border-slate-200 dark:border-cyber-border/60 bg-slate-100/70 dark:bg-cyber-darker/60 backdrop-blur-md transition-colors">
+    <div className="py-4 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-950/70 backdrop-blur-xl transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="flex items-center justify-between mb-3.5">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <Layers className="w-4 h-4 text-blue-600 dark:text-cyber-blueLight" />
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
+            <div className="p-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-cyan-400">
+              <Layers className="w-4 h-4" />
+            </div>
+            <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-mono">
               Filtre par Rubrique Académique
             </h2>
           </div>
@@ -73,85 +75,85 @@ export const RubriquesBar: React.FC<RubriquesBarProps> = ({
           {isAdmin && (
             <button
               onClick={onOpenRubriquesManager}
-              className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-cyber-card hover:bg-slate-50 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border transition-all shadow-xs"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-white bg-white dark:bg-slate-900 hover:bg-cyan-600 dark:hover:bg-cyan-600 border border-slate-200 dark:border-slate-800 transition-all shadow-xs hover:scale-105 active:scale-95"
             >
-              <Settings2 className="w-3.5 h-3.5 text-cyan-600 dark:text-cyber-cyan" />
+              <Settings2 className="w-3.5 h-3.5" />
               <span>Gérer les Rubriques</span>
             </button>
           )}
         </div>
 
-        {/* Scrollable Pills */}
-        <div className="flex items-center space-x-2.5 overflow-x-auto pb-2 scrollbar-none">
+        {/* Scrollable Animated Pills Container with Fade Indicators */}
+        <div className="relative">
           
-          {/* 'Toutes' Pill */}
-          <button
-            onClick={() => onSelectRubrique('all')}
-            className={`flex-shrink-0 inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-              selectedRubriqueId === 'all'
-                ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                : 'bg-white dark:bg-cyber-card/70 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border shadow-xs'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Toutes les rubriques</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              selectedRubriqueId === 'all' ? 'bg-blue-800 text-blue-100' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}>
-              {totalFilesAll}
-            </span>
-          </button>
-
-          {/* Individual Rubrique Pills */}
-          {rubriques.map((rub) => {
-            const isSelected = selectedRubriqueId === rub.id;
-            const isRed = rub.color === 'red';
-            const isCyan = rub.color === 'cyan';
-
-            let activeClass = 'bg-blue-600 text-white shadow-sm border-blue-500';
-            let badgeBg = 'bg-blue-800 text-blue-100';
-
-            if (isRed) {
-              activeClass = 'bg-red-600 text-white shadow-sm border-red-500';
-              badgeBg = 'bg-red-800 text-red-100';
-            } else if (isCyan) {
-              activeClass = 'bg-cyan-600 text-white shadow-sm border-cyan-500';
-              badgeBg = 'bg-cyan-800 text-cyan-100';
-            }
-
-            return (
-              <button
-                key={rub.id}
-                onClick={() => onSelectRubrique(rub.id)}
-                className={`flex-shrink-0 inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                  isSelected
-                    ? `${activeClass} border`
-                    : 'bg-white dark:bg-cyber-card/70 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border shadow-xs'
-                }`}
-              >
-                <span className={isSelected ? 'text-white' : (isRed ? 'text-red-500 dark:text-red-400' : isCyan ? 'text-cyan-600 dark:text-cyan-400' : 'text-blue-600 dark:text-blue-400')}>
-                  {renderIcon(rub.icon)}
-                </span>
-                <span className="whitespace-nowrap">{rub.name}</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                  isSelected ? badgeBg : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                }`}>
-                  {rub.filesCount || 0}
-                </span>
-              </button>
-            );
-          })}
-
-          {/* Quick Add Rubrique Button for Admin */}
-          {isAdmin && (
+          <div className="flex items-center space-x-2.5 overflow-x-auto pb-1.5 pt-1 scrollbar-none scroll-smooth">
+            
+            {/* 'Toutes' Pill */}
             <button
-              onClick={onOpenRubriquesManager}
-              className="flex-shrink-0 inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-dashed border-blue-300 dark:border-blue-500/40 transition-all"
+              onClick={() => onSelectRubrique('all')}
+              className={`group flex-shrink-0 inline-flex items-center space-x-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 ${
+                selectedRubriqueId === 'all'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/25 border border-cyan-400/40'
+                  : 'bg-white dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-xs'
+              }`}
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Ajouter une rubrique</span>
+              <Layers className="w-3.5 h-3.5" />
+              <span>Toutes les rubriques</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                selectedRubriqueId === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              }`}>
+                {totalFilesAll}
+              </span>
             </button>
-          )}
+
+            {/* Individual Rubrique Pills */}
+            {rubriques.map((rub) => {
+              const isSelected = selectedRubriqueId === rub.id;
+              const isRed = rub.color === 'red';
+              const isCyan = rub.color === 'cyan';
+
+              let activeGradient = 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border-blue-400/40';
+              if (isRed) {
+                activeGradient = 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-500/25 border-red-400/40';
+              } else if (isCyan) {
+                activeGradient = 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-500/25 border-cyan-400/40';
+              }
+
+              return (
+                <button
+                  key={rub.id}
+                  onClick={() => onSelectRubrique(rub.id)}
+                  className={`group flex-shrink-0 inline-flex items-center space-x-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 ${
+                    isSelected
+                      ? `${activeGradient} border`
+                      : 'bg-white dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-xs'
+                  }`}
+                >
+                  <span className={isSelected ? 'text-white' : (isRed ? 'text-red-500' : isCyan ? 'text-cyan-500' : 'text-blue-500')}>
+                    {renderIcon(rub.icon)}
+                  </span>
+                  <span className="whitespace-nowrap">{rub.name}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {rub.filesCount || 0}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* Quick Add Rubrique Button for Admin */}
+            {isAdmin && (
+              <button
+                onClick={onOpenRubriquesManager}
+                className="flex-shrink-0 inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-blue-600 dark:text-cyan-400 hover:text-white bg-blue-50 dark:bg-cyan-950/40 hover:bg-blue-600 dark:hover:bg-cyan-600 border border-dashed border-blue-300 dark:border-cyan-500/40 transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ajouter une rubrique</span>
+              </button>
+            )}
+
+          </div>
 
         </div>
 

@@ -26,7 +26,23 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Static serving for uploads
+// Secure static serving for uploads: strictly protect non-downloadable documents
+app.use('/uploads/:filename', (req, res, next) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const file = db.data.files.find(f => f.filename === filename);
+    if (file && !file.downloadable) {
+      const authHeader = req.headers.authorization || req.headers['x-admin-token'] || req.query.token;
+      const isAdmin = authHeader ? Boolean(validateAdminToken(authHeader)) : false;
+      if (!isAdmin) {
+        return res.status(403).json({
+          error: 'Accès direct restreint. Ce document est protégé contre le téléchargement direct par le Dr. M.A. Meziane.'
+        });
+      }
+    }
+  } catch (_) {}
+  next();
+});
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Setup Multer for file uploads
@@ -673,9 +689,13 @@ app.get('/api/files/:id/download', (req, res) => {
       return res.status(404).json({ error: 'Fichier introuvable.' });
     }
     if (!file.downloadable) {
-      return res.status(403).json({
-        error: 'Le téléchargement de ce fichier est désactivé par l\'administrateur. Consultez-le en mode lecture interactive.'
-      });
+      const authHeader = req.headers.authorization || req.headers['x-admin-token'] || req.query.token;
+      const isAdmin = authHeader ? Boolean(validateAdminToken(authHeader)) : false;
+      if (!isAdmin) {
+        return res.status(403).json({
+          error: 'Le téléchargement de ce document est formellement interdit par l\'enseignant (Dr. M.A. Meziane). Consultez-le en mode lecture interactive sécurisée.'
+        });
+      }
     }
     const physicalPath = path.join(UPLOADS_DIR, file.filename);
     if (!fs.existsSync(physicalPath)) {

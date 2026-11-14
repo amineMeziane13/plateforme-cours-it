@@ -8,7 +8,9 @@ import {
   Sun, 
   Moon,
   UserCheck,
-  Users
+  Users,
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -35,109 +37,120 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-cyber-border/80 bg-white/95 dark:bg-cyber-black/90 backdrop-blur-md transition-colors shadow-xs">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-2xl bg-white/85 dark:bg-slate-950/85 border-b border-slate-200/80 dark:border-cyan-500/20 shadow-md shadow-slate-900/5 transition-all">
+      
+      {/* Animated Futuristic Laser Shimmer Border */}
+      <div className="absolute bottom-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80 animate-pulse pointer-events-none" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           
-          {/* Logo & Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 p-[1.5px] shadow-sm">
-              <div className="w-full h-full bg-white dark:bg-cyber-black rounded-xl flex items-center justify-center">
-                <Terminal className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+          {/* Logo & Academic Brand */}
+          <div className="flex items-center space-x-3.5 group cursor-pointer">
+            
+            {/* 3D Holographic Cube Icon */}
+            <div className="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-400 p-[1.5px] shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-all duration-300">
+              <div className="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center overflow-hidden">
+                <Terminal className="w-5 h-5 text-cyan-400 group-hover:rotate-12 transition-transform duration-300" />
               </div>
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500 shadow-[0_0_8px_#06b6d4]"></span>
               </span>
             </div>
 
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white font-mono">
-                  IT<span className="text-blue-600 dark:text-cyan-400">.ACADEMY</span>
+                <span className="font-black text-xl sm:text-2xl tracking-tight text-slate-900 dark:text-white font-mono">
+                  IT<span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 bg-clip-text text-transparent">.ACADEMY</span>
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-cyan-400 border border-blue-200 dark:border-blue-500/20">
-                  v3.0
+                <span className="inline-flex items-center space-x-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500/10 to-cyan-500/10 text-blue-700 dark:text-cyan-400 border border-blue-500/30">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  <span>v3.5 PRO</span>
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 -mt-0.5 hidden sm:block">
-                Portail Académique & Pédagogique — Dr. M.A. Meziane
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 -mt-0.5 hidden sm:block">
+                Plateforme Pédagogique Universitaire • <span className="font-bold text-slate-700 dark:text-slate-200">Dr. M.A. Meziane</span>
               </p>
             </div>
+
           </div>
 
-          {/* Center Navigation Info */}
-          <div className="hidden lg:flex items-center space-x-2 font-medium text-xs">
-            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-cyber-card/60 border border-slate-200 dark:border-cyber-border text-slate-600 dark:text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Mode Lecture Haute-Fidélité Actif</span>
+          {/* Central Live Protection Status (Center Navigation) */}
+          <div className="hidden lg:flex items-center space-x-2">
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-xs font-mono shadow-xs backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shadow-[0_0_6px_#10b981]" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-slate-700 dark:text-slate-200 font-semibold">
+                Protection Anti-Capture & WAL Active
+              </span>
             </div>
           </div>
 
-          {/* Actions, Theme Switcher & Admin Controls */}
-          <div className="flex items-center space-x-2 sm:space-x-2.5">
+          {/* Actions & Interactive Controls */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
             
             {/* Theme Toggle Button (Light / Dark) */}
             <button
               onClick={onToggleTheme}
-              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-cyber-card hover:bg-slate-200 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border transition-all"
-              title={theme === 'dark' ? 'Basculer en Thème Blanc (Clair)' : 'Basculer en Thème Sombre'}
+              className="relative p-2.5 rounded-2xl text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 hover:scale-105 active:scale-95"
+              title={theme === 'dark' ? 'Basculer en Thème Clair' : 'Basculer en Thème Sombre'}
               aria-label="Changer de thème"
             >
               {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '12s' }} />
               ) : (
-                <Moon className="w-4 h-4 text-blue-600" />
+                <Moon className="w-4 h-4 text-indigo-600" />
               )}
             </button>
 
-            {/* Group Leader Portal Button (For students & delegates) */}
+            {/* Group Leader Portal Button */}
             <button
               onClick={onOpenLeaderPortal}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/60 transition-all shadow-xs"
+              className="group relative inline-flex items-center space-x-2 px-3.5 py-2 sm:py-2.5 rounded-2xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/50 dark:to-blue-950/50 hover:from-indigo-100 hover:to-blue-100 dark:hover:from-indigo-900/60 dark:hover:to-blue-900/60 border border-indigo-200 dark:border-indigo-800 shadow-sm hover:shadow-indigo-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
               title="Espace Délégués de groupe : contacter l'enseignant"
             >
-              <UserCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <UserCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:rotate-12 transition-transform duration-200" />
               <span className="hidden sm:inline">Espace Délégués</span>
             </button>
 
-            {/* Admin-only controls */}
+            {/* Admin Controls */}
             {isAdmin ? (
               <>
                 {/* Admin Leaders & Messages Manager */}
                 <button
                   onClick={onOpenLeaderManager}
-                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-300 dark:border-purple-800 transition-all shadow-xs"
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 sm:py-2.5 rounded-2xl text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-300 dark:border-purple-800 transition-all shadow-sm hover:scale-105 active:scale-95"
                   title="Gérer les délégués et répondre aux messages"
                 >
-                  <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                  <span className="hidden sm:inline">Délégués & Messages</span>
+                  <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span className="hidden md:inline">Délégués & Messages</span>
                 </button>
 
                 {/* Rubriques Manager */}
                 <button
                   onClick={onOpenRubriquesManager}
-                  className="hidden md:inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-cyber-card hover:bg-slate-200 dark:hover:bg-cyber-hover border border-slate-200 dark:border-cyber-border transition-all"
+                  className="hidden md:inline-flex items-center space-x-1.5 px-3 py-2 sm:py-2.5 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 transition-all shadow-sm hover:scale-105 active:scale-95"
                   title="Gérer les rubriques et sous-rubriques"
                 >
-                  <FolderPlus className="w-4 h-4 text-cyan-600 dark:text-cyber-cyan" />
+                  <FolderPlus className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   <span>Rubriques</span>
                 </button>
 
                 {/* Upload Button */}
                 <button
                   onClick={onOpenUpload}
-                  className="relative inline-flex items-center space-x-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 shadow-xs transition-all active:scale-95"
+                  className="relative inline-flex items-center space-x-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 shadow-md shadow-blue-500/25 transition-all duration-300 hover:scale-105 active:scale-95"
                 >
-                  <UploadCloud className="w-3.5 h-3.5 text-blue-100" />
+                  <UploadCloud className="w-4 h-4 text-white" />
                   <span className="hidden sm:inline">Déposer</span>
                 </button>
 
                 {/* Exit Admin Button */}
                 <button
                   onClick={onLogout}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-700 dark:text-red-300 bg-red-100 hover:bg-red-200 dark:bg-red-950/60 dark:hover:bg-red-900/80 border border-red-300 dark:border-red-500/40 transition-all shadow-xs"
-                  title="Quitter le mode Administrateur et revenir en mode consultation étudiante"
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold text-red-700 dark:text-red-300 bg-red-100/80 hover:bg-red-200 dark:bg-red-950/60 dark:hover:bg-red-900/80 border border-red-300 dark:border-red-500/40 transition-all shadow-sm hover:scale-105 active:scale-95"
+                  title="Revenir en mode consultation étudiante"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden md:inline">Mode Étudiant</span>
@@ -147,17 +160,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               /* Public / Student Mode: Login to Admin */
               <button
                 onClick={onLoginClick}
-                className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-cyber-card/80 hover:bg-slate-200 dark:hover:bg-cyber-card border border-slate-200 dark:border-cyber-border transition-all"
+                className="group relative inline-flex items-center space-x-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-white bg-slate-100 dark:bg-slate-900 hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-600 border border-slate-200 dark:border-slate-800 hover:border-transparent transition-all duration-300 shadow-sm hover:shadow-cyan-500/20 hover:scale-105 active:scale-95"
                 title="Accéder à l'espace Administrateur / Enseignant"
               >
-                <KeyRound className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <KeyRound className="w-4 h-4 text-blue-600 dark:text-cyan-400 group-hover:text-white transition-colors" />
                 <span className="hidden sm:inline">Espace Enseignant</span>
               </button>
             )}
 
           </div>
+
         </div>
       </div>
+
     </header>
   );
 };

@@ -11,6 +11,7 @@ import {
   BookOpen, 
   Lock, 
   ShieldCheck, 
+  ShieldAlert,
   AlertTriangle, 
   Copy, 
   Check, 
@@ -52,6 +53,8 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   const [isWrapText, setIsWrapText] = useState<boolean>(true);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [imageZoom, setImageZoom] = useState<number>(100);
+  const [isShieldActive, setIsShieldActive] = useState<boolean>(false);
+  const [securityAlert, setSecurityAlert] = useState<string | null>(null);
 
   // Optional Spotlight / Focus mode (off by default so user can read smoothly)
   const [isSpotlightMode, setIsSpotlightMode] = useState<boolean>(false);
@@ -69,12 +72,15 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       setImageZoom(100);
       setIsSpotlightMode(false);
       setCurrentBlockIndex(0);
+      setIsShieldActive(false);
+      setSecurityAlert(null);
       return;
     }
 
     setLoading(true);
     setError(null);
     setCurrentBlockIndex(0);
+    setIsShieldActive(false);
 
     const viewUrl = `/api/files/${file.id}/view`;
     setStreamUrl(viewUrl);
@@ -109,27 +115,95 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       });
   }, [isOpen, file]);
 
-  // Context Menu and Print Prevention
+  // Anti-Screenshot, Anti-Copy and Strict Document Protection
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !file) return;
+
+    // Detect screen capture tools / app switching (blur triggers on Snipping Tool, Win+Shift+S, Alt+Tab)
+    const handleBlur = () => {
+      if (!file.downloadable) {
+        setIsShieldActive(true);
+      }
+    };
+
+    const handleFocus = () => {
+      setTimeout(() => {
+        setIsShieldActive(false);
+      }, 350);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && !file.downloadable) {
+        setIsShieldActive(true);
+      } else {
+        setTimeout(() => setIsShieldActive(false), 350);
+      }
+    };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape to close
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      // Intercept Screen capture shortcuts (PrintScreen, Win+Shift+S, F12)
+      if (
+        e.key === 'PrintScreen' || 
+        (e as any).keyCode === 44 || 
+        e.key === 'F12' || 
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ['s', 'i', 'c', 'j'].includes(e.key.toLowerCase()))
+      ) {
+        if (!file.downloadable) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsShieldActive(true);
+          setSecurityAlert("Capture d'écran formellement désactivée sur ce cours du Dr. M.A. Meziane.");
+          setTimeout(() => setSecurityAlert(null), 4000);
+        }
+      }
+
       // Prevent Print (Ctrl+P) and Save (Ctrl+S)
       if ((e.ctrlKey || e.metaKey) && ['p', 's'].includes(e.key.toLowerCase())) {
         e.preventDefault();
         e.stopPropagation();
+        setSecurityAlert("Impression et enregistrement direct désactivés.");
+        setTimeout(() => setSecurityAlert(null), 3000);
       }
-      // Escape to close
-      if (e.key === 'Escape') {
-        onClose();
+
+      // Prevent Copy / Cut / Select All on protected non-downloadable documents
+      if (!file.downloadable && (e.ctrlKey || e.metaKey) && ['c', 'x', 'a', 'u'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSecurityAlert("Copie intégrale désactivée sur ce support pédagogique protégé.");
+        setTimeout(() => setSecurityAlert(null), 3000);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+    // Prevent direct clipboard copying
+    const handleCopy = (e: ClipboardEvent) => {
+      if (!file.downloadable) {
+        e.preventDefault();
+        e.clipboardData?.setData('text/plain', 'Copie interdite : document pédagogique protégé par le Dr. M.A. Meziane (IT Academy).');
+        setSecurityAlert("Copie non autorisée : document protégé par Dr. M.A. Meziane.");
+        setTimeout(() => setSecurityAlert(null), 3000);
+      }
     };
-  }, [isOpen, onClose]);
+
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('copy', handleCopy);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('copy', handleCopy);
+    };
+  }, [isOpen, file, onClose]);
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
@@ -143,7 +217,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   };
 
   const handleCopyText = () => {
-    if (!content) return;
+    if (!content || !file?.downloadable) return;
     try {
       navigator.clipboard.writeText(content);
       setIsCopied(true);
@@ -283,24 +357,34 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                   <WrapText className="w-3.5 h-3.5" />
                 </button>
 
-                {/* Copy Text Button */}
-                <button
-                  onClick={handleCopyText}
-                  className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border border-inherit font-medium transition-all"
-                  title="Copier le contenu dans le presse-papiers"
-                >
-                  {isCopied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-emerald-500 font-bold">Copié !</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Copier</span>
-                    </>
-                  )}
-                </button>
+                {/* Copy Text Button (Only for downloadable files, otherwise locked badge) */}
+                {file.downloadable ? (
+                  <button
+                    onClick={handleCopyText}
+                    className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border border-inherit font-medium transition-all"
+                    title="Copier le contenu dans le presse-papiers"
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="text-emerald-500 font-bold">Copié !</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Copier</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <span
+                    className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-[11px]"
+                    title="Ce document est protégé contre la copie et le téléchargement par le Dr. M.A. Meziane"
+                  >
+                    <Lock className="w-3 h-3 text-amber-500" />
+                    <span className="hidden md:inline">Copie Verrouillée</span>
+                  </span>
+                )}
 
                 {/* Spotlight / Full View Toggle */}
                 <button
@@ -405,17 +489,54 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           </div>
         </header>
 
+        {/* Anti-Screenshot Active Shield Overlay */}
+        {isShieldActive && (
+          <div 
+            onClick={() => setIsShieldActive(false)}
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-3xl p-6 text-center select-none cursor-pointer animate-fade-in"
+          >
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center mb-5 shadow-2xl shadow-amber-500/20 animate-bounce">
+              <ShieldAlert className="w-10 h-10 text-amber-400" />
+            </div>
+            <h3 className="text-xl font-black text-white font-mono tracking-wider mb-2">
+              🛡️ PROTECTION INTELLECTUELLE ACTIVE
+            </h3>
+            <p className="text-sm font-medium text-slate-300 max-w-lg mb-2 leading-relaxed">
+              Capture d'écran, perte de focus ou tentative de copie détectée.
+            </p>
+            <p className="text-xs text-amber-300/90 font-mono max-w-md mb-6">
+              Ce cours est la propriété pédagogique exclusive du <span className="font-bold underline">Dr. M.A. Meziane</span>. Tout enregistrement ou capture est verrouillé.
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsShieldActive(false); }}
+              className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 hover:from-blue-500 hover:to-cyan-400 transition-all active:scale-95"
+            >
+              <span>Reprendre la lecture sécurisée</span>
+            </button>
+          </div>
+        )}
+
+        {/* Security Alert Toast */}
+        {securityAlert && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2 animate-bounce border border-red-400">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-200" />
+            <span>{securityAlert}</span>
+          </div>
+        )}
+
         {/* Content Viewer Body */}
         <div className="relative flex-1 overflow-hidden flex flex-col">
           
-          {/* Discreet Transparent Watermark Background */}
+          {/* Prominent Diagonal Watermark Background */}
           <div 
-            className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center opacity-[0.035] select-none overflow-hidden"
+            className="pointer-events-none absolute inset-0 z-0 flex flex-col justify-around opacity-[0.05] select-none overflow-hidden"
             aria-hidden="true"
           >
-            <div className="text-4xl sm:text-6xl font-black uppercase font-mono tracking-widest rotate-[-25deg] text-center select-none">
-              IT ACADEMY • DR. M.A. MEZIANE<br />CONSULTATION ACADÉMIQUE PROTÉGÉE
-            </div>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="text-2xl sm:text-4xl font-black uppercase font-mono tracking-widest rotate-[-18deg] text-center select-none whitespace-nowrap">
+                IT ACADEMY • DR. M.A. MEZIANE • REPRODUCTION & CAPTURE INTERDITES •
+              </div>
+            ))}
           </div>
 
           {/* Main Content Renderers */}
@@ -536,7 +657,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                             <span className={`w-8 sm:w-10 text-right select-none font-mono text-[11px] shrink-0 pt-0.5 ${themeStyles.lineNum}`}>
                               {lineNum}
                             </span>
-                            <span className="flex-1 font-mono">{line || ' '}</span>
+                            <span className={`flex-1 font-mono ${!file.downloadable ? 'select-none pointer-events-none' : ''}`}>{line || ' '}</span>
                           </div>
                         );
                       })
