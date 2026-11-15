@@ -409,6 +409,39 @@ export async function importDatabase(data: any): Promise<{ success: boolean; mes
   return result;
 }
 
+// Assiduité Pro Attendance Sync (Admin)
+export async function syncAttendance(data: any): Promise<{ success: boolean; message: string; stats?: any }> {
+  const res = await fetch(`${API_BASE}/admin/attendance/sync`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify(data)
+  });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error('Session administrateur expirée ou requise. Veuillez vous reconnecter.');
+  }
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || 'Erreur lors de la synchronisation.');
+  return result;
+}
+
+export async function getAttendanceStats(): Promise<any> {
+  const res = await fetch(`${API_BASE}/admin/attendance/stats`, {
+    headers: {
+      ...getAuthHeaders()
+    }
+  });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error('Session administrateur expirée ou requise. Veuillez vous reconnecter.');
+  }
+  if (!res.ok) throw new Error('Impossible de charger les statistiques d\'assiduité.');
+  return res.json();
+}
+
 // ==========================================
 // GROUP LEADERS PORTAL (STUDENT DELEGATES)
 // ==========================================
@@ -541,6 +574,8 @@ export const api = {
   getVisitorCount,
   downloadDatabaseBackup,
   importDatabase,
+  syncAttendance,
+  getAttendanceStats,
   getAdminToken,
   setAdminToken,
   clearAdminToken

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, UploadCloud, FileSpreadsheet, Check, AlertCircle, Database, Sparkles } from 'lucide-react';
+import { api } from '../api';
 
 interface AttendanceSyncModalProps {
   isOpen: boolean;
@@ -43,18 +44,8 @@ export const AttendanceSyncModal: React.FC<AttendanceSyncModalProps> = ({
         throw new Error("Format JSON non reconnu. Le fichier doit contenir la clé 'students'.");
       }
 
-      const res = await fetch('/api/admin/attendance/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const resData = await api.syncAttendance(payload);
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Erreur lors de la synchronisation.');
-      }
-
-      const resData = await res.json();
       setResultMsg({
         type: 'success',
         text: `✓ ${resData.message || 'Données synchronisées avec succès !'}`
