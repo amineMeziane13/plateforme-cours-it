@@ -233,7 +233,7 @@ export function App() {
           onOpenUpload={() => setIsUploadOpen(true)}
         />
 
-        {/* Interactive 3D Academic Book Menu */}
+        {/* Modern Navigation Menu */}
         <RubriquesBar
           rubriques={rubriques}
           selectedRubriqueId={filters.rubriqueId}
