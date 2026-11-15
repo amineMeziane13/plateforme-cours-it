@@ -12,6 +12,8 @@ import { ReaderModal } from './components/ReaderModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { LeaderPortalModal } from './components/LeaderPortalModal';
 import { LeaderManagerModal } from './components/LeaderManagerModal';
+import { StudentPortalModal } from './components/StudentPortalModal';
+import { AttendanceSyncModal } from './components/AttendanceSyncModal';
 import { ToastContainer } from './components/ToastContainer';
 import { 
   Rubrique, 
@@ -70,6 +72,8 @@ export function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLeaderPortalOpen, setIsLeaderPortalOpen] = useState(false);
   const [isLeaderManagerOpen, setIsLeaderManagerOpen] = useState(false);
+  const [isStudentPortalOpen, setIsStudentPortalOpen] = useState(false);
+  const [isAttendanceSyncOpen, setIsAttendanceSyncOpen] = useState(false);
 
   // Selected file for modals
   const [selectedFile, setSelectedFile] = useState<CourseFile | null>(null);
@@ -217,6 +221,8 @@ export function App() {
         onOpenRubriquesManager={() => setIsRubriquesManagerOpen(true)}
         onOpenLeaderPortal={() => setIsLeaderPortalOpen(true)}
         onOpenLeaderManager={() => setIsLeaderManagerOpen(true)}
+        onOpenStudentPortal={() => setIsStudentPortalOpen(true)}
+        onOpenAttendanceSync={() => setIsAttendanceSyncOpen(true)}
         onLoginClick={() => setIsLoginOpen(true)}
         onLogout={handleLogout}
       />
@@ -383,6 +389,21 @@ export function App() {
           refreshAll();
         }}
         showToast={showToast}
+      />
+
+      {/* Student Portal Modal (QR Code & Absences) */}
+      <StudentPortalModal
+        isOpen={isStudentPortalOpen}
+        onClose={() => setIsStudentPortalOpen(false)}
+      />
+
+      {/* Attendance Sync Modal (Import from Assiduité Pro) */}
+      <AttendanceSyncModal
+        isOpen={isAttendanceSyncOpen}
+        onClose={() => setIsAttendanceSyncOpen(false)}
+        onSyncSuccess={() => {
+          showToast('success', 'Synchronisation réussie', 'Les présences et codes QR ont été mis à jour.');
+        }}
       />
 
       {/* Floating Toasts */}

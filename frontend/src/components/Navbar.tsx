@@ -10,7 +10,9 @@ import {
   UserCheck,
   Users,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  QrCode,
+  Database
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -21,6 +23,8 @@ interface NavbarProps {
   onOpenRubriquesManager: () => void;
   onOpenLeaderPortal: () => void;
   onOpenLeaderManager: () => void;
+  onOpenStudentPortal: () => void;
+  onOpenAttendanceSync?: () => void;
   onLoginClick: () => void;
   onLogout: () => void;
 }
@@ -33,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenRubriquesManager,
   onOpenLeaderPortal,
   onOpenLeaderManager,
+  onOpenStudentPortal,
+  onOpenAttendanceSync,
   onLoginClick,
   onLogout
 }) => {
@@ -100,12 +106,33 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Espace Délégués de groupe : contacter l'enseignant"
             >
               <UserCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:rotate-12 transition-transform duration-200" />
-              <span className="hidden sm:inline">Espace Délégués</span>
+              <span className="hidden sm:inline">Délégués</span>
+            </button>
+
+            {/* Student Portal Button (QR Code & Absences) */}
+            <button
+              onClick={onOpenStudentPortal}
+              className="group relative inline-flex items-center space-x-2 px-3.5 py-2 sm:py-2.5 rounded-2xl text-xs font-bold text-cyan-700 dark:text-cyan-300 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/50 dark:to-blue-950/50 hover:from-cyan-100 hover:to-blue-100 dark:hover:from-cyan-900/60 dark:hover:to-blue-900/60 border border-cyan-300 dark:border-cyan-800 shadow-sm hover:shadow-cyan-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
+              title="Espace Étudiant : Consultez vos absences et votre code QR officiel HD"
+            >
+              <QrCode className="w-4 h-4 text-cyan-600 dark:text-cyan-400 group-hover:rotate-12 transition-transform duration-200" />
+              <span>Espace Étudiant</span>
             </button>
 
             {/* Admin Controls */}
             {isAdmin ? (
               <>
+                {/* Attendance Sync Button */}
+                {onOpenAttendanceSync && (
+                  <button
+                    onClick={onOpenAttendanceSync}
+                    className="inline-flex items-center space-x-1.5 px-3 py-2 sm:py-2.5 rounded-2xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-300 dark:border-indigo-800 transition-all shadow-sm hover:scale-105 active:scale-95"
+                    title="Synchroniser avec Assiduité Pro"
+                  >
+                    <Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span className="hidden lg:inline">Sync Présences</span>
+                  </button>
+                )}
                 {/* Admin Leaders & Messages Manager */}
                 <button
                   onClick={onOpenLeaderManager}

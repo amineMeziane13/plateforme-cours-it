@@ -289,6 +289,10 @@ class Database {
       },
       groupLeaders: [],
       messages: [],
+      studentGroups: [],
+      students: [],
+      sessions: [],
+      attendances: [],
       dynamicAuth: null,
       visitorCount: 0,
       lastVisitors: []
@@ -387,11 +391,57 @@ class Database {
           last_seen INTEGER
         );
 
+        -- Tables Espace Étudiant & Assiduité
+        CREATE TABLE IF NOT EXISTS student_groups (
+          id INTEGER PRIMARY KEY,
+          name TEXT NOT NULL,
+          level TEXT,
+          speciality TEXT,
+          academic_year TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS students (
+          id INTEGER PRIMARY KEY,
+          matricule TEXT UNIQUE NOT NULL,
+          nin TEXT,
+          last_name TEXT NOT NULL,
+          first_name TEXT NOT NULL,
+          level TEXT,
+          speciality TEXT,
+          group_id INTEGER,
+          qr_code_data TEXT NOT NULL,
+          inscription_status TEXT DEFAULT 'Validée',
+          created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS sessions (
+          id INTEGER PRIMARY KEY,
+          group_id INTEGER,
+          session_date TEXT,
+          title TEXT,
+          topic TEXT,
+          last_point_achieved TEXT,
+          is_closed INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS attendances (
+          id INTEGER PRIMARY KEY,
+          session_id INTEGER,
+          student_id INTEGER,
+          status TEXT,
+          is_justified INTEGER DEFAULT 0,
+          justification_reason TEXT,
+          marked_at TEXT,
+          marked_method TEXT
+        );
+
         -- B-Tree Indexes as detailed in Section 5.C of the guide
         CREATE INDEX IF NOT EXISTS idx_files_rubrique ON files(rubrique_id);
         CREATE INDEX IF NOT EXISTS idx_files_sous_rubrique ON files(sous_rubrique_id);
         CREATE INDEX IF NOT EXISTS idx_sous_rubriques_rubrique ON sous_rubriques(rubrique_id);
         CREATE INDEX IF NOT EXISTS idx_messages_leader ON leader_messages(leader_id);
+        CREATE INDEX IF NOT EXISTS idx_students_matricule ON students(matricule);
+        CREATE INDEX IF NOT EXISTS idx_attendances_student ON attendances(student_id);
       `);
 
       console.log('[DB] 🗄️ Moteur relationnel SQLite (WAL ACID) initialisé avec succès.');
@@ -490,12 +540,28 @@ class Database {
         try { adminConfig = JSON.parse(cfgRow.value); } catch (_) {}
       }
 
+      // Assemble attendance data
+      let studentGroups = [];
+      let students = [];
+      let sessions = [];
+      let attendances = [];
+      try {
+        studentGroups = this.sqlite.prepare('SELECT * FROM student_groups').all() || [];
+        students = this.sqlite.prepare('SELECT * FROM students').all() || [];
+        sessions = this.sqlite.prepare('SELECT * FROM sessions').all() || [];
+        attendances = this.sqlite.prepare('SELECT * FROM attendances').all() || [];
+      } catch (_) {}
+
       this.data = {
         rubriques,
         files,
         adminConfig,
         groupLeaders,
         messages,
+        studentGroups,
+        students,
+        sessions,
+        attendances,
         dynamicAuth: null,
         visitorCount: visitorRows.length,
         lastVisitors: visitorRows.map(v => ({ id: v.session_id, ts: v.last_seen }))
@@ -626,6 +692,53 @@ class Database {
         `);
         for (const v of this.data.lastVisitors || []) {
           insertVis.run(v.id, v.ts || Date.now());
+        }
+
+        // Attendance & Students tables
+        this.sqlite.exec('DELETE FROM attendances; DELETE FROM sessions; DELETE FROM students; DELETE FROM student_groups;');
+
+        const insertGroup = this.sqlite.prepare(`
+          INSERT INTO student_groups (id, name, level, speciality, academic_year)
+          VALUES (?, ?, ?, ?, ?)
+        `);
+        for (const g of this.data.studentGroups || []) {
+          insertGroup.run(g.id, g.name, g.level || '', g.speciality || '', g.academic_year || '');
+        }
+
+        const insertStudent = this.sqlite.prepare(`
+          INSERT INTO students (id, matricule, nin, last_name, first_name, level, speciality, group_id, qr_code_data, inscription_status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        for (const s of this.data.students || []) {
+          insertStudent.run(
+            s.id, s.matricule, s.nin || '', s.last_name, s.first_name,
+            s.level || '', s.speciality || '', s.group_id || null,
+            s.qr_code_data || s.matricule, s.inscription_status || 'Validée',
+            s.created_at || new Date().toISOString()
+          );
+        }
+
+        const insertSession = this.sqlite.prepare(`
+          INSERT INTO sessions (id, group_id, session_date, title, topic, last_point_achieved, is_closed)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+        for (const sess of this.data.sessions || []) {
+          insertSession.run(
+            sess.id, sess.group_id, sess.session_date, sess.title || '',
+            sess.topic || '', sess.last_point_achieved || '', sess.is_closed ? 1 : 0
+          );
+        }
+
+        const insertAtt = this.sqlite.prepare(`
+          INSERT INTO attendances (id, session_id, student_id, status, is_justified, justification_reason, marked_at, marked_method)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        for (const a of this.data.attendances || []) {
+          insertAtt.run(
+            a.id, a.session_id, a.student_id, a.status,
+            a.is_justified ? 1 : 0, a.justification_reason || '',
+            a.marked_at || '', a.marked_method || 'manual'
+          );
         }
       });
 
@@ -1613,6 +1726,116 @@ class Database {
     };
     this.save();
     return true;
+  }
+
+  // ==========================================
+  // ESPACE ÉTUDIANT & ASSIDUITÉ
+  // ==========================================
+  getStudentByMatricule(matricule) {
+    if (!matricule) return null;
+    const cleanSearch = String(matricule).trim().toLowerCase().replace(/[\s\-_]+/g, '');
+    const students = this.data.students || [];
+    const groups = this.data.studentGroups || [];
+    const sessions = this.data.sessions || [];
+    const attendances = this.data.attendances || [];
+
+    const student = students.find(s => {
+      const sMat = String(s.matricule || '').trim().toLowerCase().replace(/[\s\-_]+/g, '');
+      const sNin = String(s.nin || '').trim().toLowerCase().replace(/[\s\-_]+/g, '');
+      if (sMat && (sMat === cleanSearch || sMat.includes(cleanSearch) || cleanSearch.includes(sMat))) return true;
+      if (sNin && (sNin === cleanSearch || sNin.includes(cleanSearch) || cleanSearch.includes(sNin))) return true;
+      return false;
+    });
+
+    if (!student) return null;
+
+    const grp = groups.find(g => Number(g.id) === Number(student.group_id));
+    const studentAtts = attendances.filter(a => Number(a.student_id) === Number(student.id));
+
+    const totalAbs = studentAtts.filter(a => a.status === 'absent').length;
+    const justifiedAbs = studentAtts.filter(a => a.status === 'absent' && a.is_justified).length;
+    const unjustifiedAbs = totalAbs - justifiedAbs;
+
+    // Academic exclusion rule (5 total or 3 unjustified absences)
+    const isExcluded = totalAbs >= 5 || unjustifiedAbs >= 3;
+    const status = isExcluded ? 'excluded' : (unjustifiedAbs >= 2 || totalAbs >= 4 ? 'danger' : (totalAbs > 0 ? 'caution' : 'regular'));
+    const reason = isExcluded
+      ? (totalAbs >= 5 && unjustifiedAbs >= 3 ? "Double seuil d'exclusion atteint" : (unjustifiedAbs >= 3 ? "Seuil de 3 absences non justifiées atteint" : "Seuil de 5 absences cumulées atteint"))
+      : "";
+
+    // History of missed sessions
+    const absencesHistory = studentAtts
+      .filter(a => a.status === 'absent')
+      .map(a => {
+        const sess = sessions.find(s => Number(s.id) === Number(a.session_id));
+        return {
+          id: a.id,
+          session_id: a.session_id,
+          session_date: sess ? sess.session_date : '',
+          session_title: sess ? sess.title : 'Séance',
+          topic: sess ? sess.topic : '',
+          last_point_achieved: sess ? sess.last_point_achieved : '',
+          is_justified: Boolean(a.is_justified),
+          justification_reason: a.justification_reason || (a.is_justified ? 'Justifiée' : 'Non justifiée'),
+          marked_at: a.marked_at
+        };
+      })
+      .sort((a, b) => new Date(b.session_date || 0).getTime() - new Date(a.session_date || 0).getTime());
+
+    return {
+      student: {
+        ...student,
+        group_name: grp ? grp.name : 'Sans groupe',
+        group_level: grp ? grp.level : student.level,
+        qr_code_data: student.qr_code_data || (student.matricule && student.nin ? `${student.matricule}|${student.nin}` : student.matricule)
+      },
+      stats: {
+        total_absences: totalAbs,
+        justified_absences: justifiedAbs,
+        unjustified_absences: unjustifiedAbs,
+        is_excluded: isExcluded,
+        status: status,
+        reason: reason,
+        badge_text: isExcluded ? "⛔ EXCLU DU MODULE" : (status === "danger" ? "⚠️ Risque d'Exclusion" : (status === "caution" ? "⚡ Vigilance" : "En règle"))
+      },
+      absences_history: absencesHistory
+    };
+  }
+
+  syncAttendanceData(payload) {
+    if (!payload || typeof payload !== 'object') return { count: 0 };
+    const { groups, students, sessions, attendances } = payload;
+
+    if (Array.isArray(groups)) {
+      this.data.studentGroups = groups;
+    }
+    if (Array.isArray(students)) {
+      this.data.students = students;
+    }
+    if (Array.isArray(sessions)) {
+      this.data.sessions = sessions;
+    }
+    if (Array.isArray(attendances)) {
+      this.data.attendances = attendances;
+    }
+
+    this.save();
+    console.log(`[DB-ATTENDANCE] Synchronisé : ${(this.data.students || []).length} étudiants, ${(this.data.studentGroups || []).length} groupes, ${(this.data.sessions || []).length} séances, ${(this.data.attendances || []).length} fiches.`);
+    return {
+      groups_count: (this.data.studentGroups || []).length,
+      students_count: (this.data.students || []).length,
+      sessions_count: (this.data.sessions || []).length,
+      attendances_count: (this.data.attendances || []).length
+    };
+  }
+
+  getAttendanceStats() {
+    return {
+      total_groups: (this.data.studentGroups || []).length,
+      total_students: (this.data.students || []).length,
+      total_sessions: (this.data.sessions || []).length,
+      total_attendances: (this.data.attendances || []).length
+    };
   }
 }
 

@@ -395,6 +395,80 @@
       "repliedAt": "2026-11-14T21:59:21.540Z"
     }
   ],
+  "studentGroups": [
+    {
+      "id": 1,
+      "name": "1 ére année - Groupe 01 (section 01)",
+      "level": "1ère Année",
+      "speciality": "Section 01",
+      "academic_year": "2026-2027"
+    }
+  ],
+  "students": [
+    {
+      "id": 1,
+      "matricule": "EP31012026252537612610",
+      "nin": "1001",
+      "last_name": "GHELLAM",
+      "first_name": "Ilyas",
+      "group_id": 1,
+      "level": "1ère Année",
+      "speciality": "Section 01",
+      "qr_code_data": "EP31012026252537612610|1001"
+    }
+  ],
+  "sessions": [
+    {
+      "id": 101,
+      "group_id": 1,
+      "session_date": "2026-11-10T08:30:00.000Z",
+      "title": "Séance 1 : Algorithmique",
+      "topic": "Arbres binaires",
+      "is_closed": 1
+    },
+    {
+      "id": 102,
+      "group_id": 1,
+      "session_date": "2026-11-12T10:00:00.000Z",
+      "title": "Séance 2 : Systèmes",
+      "topic": "Processus et Threads",
+      "is_closed": 1
+    },
+    {
+      "id": 103,
+      "group_id": 1,
+      "session_date": "2026-11-14T13:30:00.000Z",
+      "title": "Séance 3 : Réseaux",
+      "topic": "Sous-réseaux IP",
+      "is_closed": 1
+    }
+  ],
+  "attendances": [
+    {
+      "id": 1001,
+      "session_id": 101,
+      "student_id": 1,
+      "status": "absent",
+      "is_justified": 0,
+      "justification_reason": ""
+    },
+    {
+      "id": 1002,
+      "session_id": 102,
+      "student_id": 1,
+      "status": "absent",
+      "is_justified": 1,
+      "justification_reason": "Certificat médical validé"
+    },
+    {
+      "id": 1003,
+      "session_id": 103,
+      "student_id": 1,
+      "status": "present",
+      "is_justified": 0,
+      "justification_reason": ""
+    }
+  ],
   "dynamicAuth": null,
   "visitorCount": 0,
   "lastVisitors": []

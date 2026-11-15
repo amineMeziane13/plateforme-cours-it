@@ -873,6 +873,58 @@ app.post('/api/admin/database/import', requireAdmin, (req, res) => {
   }
 });
 
+// ==========================================
+// ESPACE ÉTUDIANT & ASSIDUITÉ (Assiduité Pro Sync)
+// ==========================================
+
+// 1. Consultation publique de l'Espace Étudiant (QR Code & Absences)
+app.get('/api/student/portal/:matricule', (req, res) => {
+  try {
+    const rawMat = req.params.matricule;
+    if (!rawMat || String(rawMat).trim().length === 0) {
+      return res.status(400).json({ error: 'Matricule requis pour la consultation.' });
+    }
+
+    const data = db.getStudentByMatricule(rawMat);
+    if (!data) {
+      return res.status(404).json({ error: 'Aucun étudiant trouvé avec ce numéro de matricule ou NIN.' });
+    }
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la récupération des données de l\'étudiant : ' + error.message });
+  }
+});
+
+// 2. Synchronisation de la base Assiduité Pro (Admin)
+app.post('/api/admin/attendance/sync', requireAdmin, (req, res) => {
+  try {
+    const payload = req.body;
+    if (!payload || typeof payload !== 'object') {
+      return res.status(400).json({ error: 'Payload JSON invalide.' });
+    }
+
+    const stats = db.syncAttendanceData(payload);
+    res.json({
+      success: true,
+      message: `Synchronisation réussie : ${stats.students_count} étudiants, ${stats.groups_count} groupes, ${stats.sessions_count} séances, ${stats.attendances_count} fiches de présence.`,
+      stats
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la synchronisation de l\'assiduité : ' + error.message });
+  }
+});
+
+// 3. Statistiques de l'assiduité (Admin)
+app.get('/api/admin/attendance/stats', requireAdmin, (req, res) => {
+  try {
+    const stats = db.getAttendanceStats();
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Graceful process shutdown to flush database writes
 const handleExit = (signal) => {
   console.log(`[Server] Arrêt propre suite au signal ${signal}...`);
